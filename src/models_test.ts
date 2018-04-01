@@ -934,3 +934,41 @@ const fakeRoundtripModel: ModelAndWeightsConfig = {
     }
   }
 };
+
+// describeMathCPUAndGPU('EagerModeCustomModel', () => {
+  // it('Building and executing model', () => {
+  //   interface MyRNNConfig extends ContainerConfig {
+  //     units: number;
+  //   }
+
+  //   class MyRNN extends tfl.Model {
+  //     readonly units: number;
+  //     dense1: Layer;
+  //     dense2: Layer;
+
+  //     constructor(units: number) {
+  //       super({});
+  //       this.units = config.units;
+  //       this.dense1 = tfl.layers.dense({units: this.units, activation: 'relu'});
+  //       this.dense2 = tfl.layers.dense({units: this.units, activation: 'relu'});
+  //     }
+
+  //     call(inputs: Tensor|Tensor[], kwargs: any): Tensor|Tensor[] {
+  //       inputs = inputs as Tensor;
+  //       const outputs: Tensor[] = [];
+  //       let state = zeros([inputs.shape[0], this.units]);
+  //       let y: Tensor;
+  //       for (let t = 0; t < inputs.shape[1]; ++t) {
+  //         const x = inputs.slice([0, t, 0], [inputs.shape[0], 1, inputs.shape[2]]);
+  //         const h = this.dense1.apply(x) as Tensor;
+  //         const y = h.add(this.dense2.apply(state) as Tensor);
+  //         state = y;
+  //       }
+  //       outputs.push(y);
+  //       return stack(outputs, 1);
+  //     }
+  //   }
+
+  //   const model = new MyRNN({units: 10});
+  // });
+// });

@@ -12,6 +12,37 @@ import * as tfc from '@tensorflow/tfjs-core';
 import * as tfl from '@tensorflow/tfjs-layers';
 import * as ui from './ui';
 
+class MyRNN {
+  constructor(units) {
+    this.units = units;
+    this.dense1 = tf.layers.dense({units: this.units, activation: 'relu'});
+    this.dense2 = tf.layers.dense({units: this.units, activation: 'relu'});
+  }
+
+  call(inputs) {
+    const outputs = [];
+    let state = tf.zeros([inputs.shape[0], this.units]);
+    let y;
+    for (let t = 0; t < inputs.shape[1]; ++t) {
+      const x = inputs.slice([0, t, 0], [inputs.shape[0], 1, inputs.shape[2]]);
+      const h = this.dense1.apply(x);
+      const y = h.add(this.dense2.apply(state));
+      state = y;
+    }
+    outputs.push(y);
+    return stack(outputs, 1);
+  }
+}
+
+console.log(MyRNN);
+const model = new MyRNN(10);
+
+const inputData = tf.randomUniform([100, 200, 5]);
+const targetData = tf.randomUniform([100, 20, 10]);
+
+model.compile({optimizer: tf.train.adam(1e-3), loss: 'mse'});
+model.fit(inputData, targetData, {epochs: 10, batshSize: 32});
+
 async function runBenchmark(artifactsDir, modelName, config) {
   const modelPath = artifactsDir + modelName + '/';
   console.log('Loading model "' + modelName + '" and benchmark data...');
