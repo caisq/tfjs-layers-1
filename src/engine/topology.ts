@@ -1484,19 +1484,45 @@ export function Input(config: InputConfig): SymbolicTensor {
 
 /** Constructor config for Container. */
 export interface ContainerConfig {
-  inputs: SymbolicTensor|SymbolicTensor[];
-  outputs: SymbolicTensor|SymbolicTensor[];
+  /**
+   * Inputs to the container.
+   *
+   * If defined, `outputs` are required to be defined as well, in which case
+   * the `Container` will be a *Graph ontainer*. This is the most common way
+   * of constructing a `Container` (or its subtypes such as `Model`.).
+   * The alternative is leaving both `inputs` and `outputs` undefined, in which
+   * case the container will be an *eager Container*. The `call` method of an
+   * eager `Container` needs to be overridden, so that the runtime computation
+   * performed by the `Container` can be specified.
+   */
+  inputs?: SymbolicTensor|SymbolicTensor[];
+
+  /**
+   * Outputs from the container.
+   *
+   * See the documentation of `inputs` for when `outputs` need be defined and
+   * the implications of definining it or not defining it.
+   */
+  outputs?: SymbolicTensor|SymbolicTensor[];
+
+  /**
+   * Name of the container.
+   */
   name?: string;
 }
 
 /**
  * A Container is a directed acyclic graph of layers.
  *
+ * TODO(cais): Update comment. DO NOT SUBMIT.
+ *
  * It is the topological form of a "model". A Model
  * is simply a Container with added training routines.
  *
  */
 export class Container extends Layer {
+  protected readonly isGraphContainer: boolean;
+
   inputs: SymbolicTensor[];
   outputs: SymbolicTensor[];
 
@@ -1533,10 +1559,32 @@ export class Container extends Layer {
   constructor(config: ContainerConfig) {
     // No args passed to super's constructor.
     super({});
+
+    if (config.inputs != null && config.outputs == null ||
+        config.inputs == null && config.outputs != null) {
+      throw new ValueError(
+          'When constructing a Model, `inputs` and `outputs` must both be ' +
+          'specified (which leads to a graph model) or both unspecified ' +
+          '(which leads to an eager Model). But only one of them is ' +
+          'specified.');
+    }
+
     this.name = config.name;
     if (this.name == null) {
       const prefix = this.constructor.name.toLowerCase();
       this.name = K.getUid(prefix);
+    }
+
+    if (config.inputs == null) {
+      // This is an eager Container, of which the `call` method is to be
+      // overridden.
+      this.isGraphContainer = false;
+      this.inputs = null;
+      this.outputs = null;
+      this.built = false;
+      return;
+    } else {
+      this.isGraphContainer = true;
     }
 
     this.supportsMasking = false;
@@ -1912,6 +1960,12 @@ export class Container extends Layer {
   }
 
   get trainableWeights(): LayerVariable[] {
+    if (!this.isGraphContainer) {
+      console.log('Calling collectEagerLayers();');  // DEBUG
+      this.collectEagerLayers();
+      console.log(`this.layers = ${this.layers}`);  // DEBUG
+    }
+
     // Porting Note: This check below is to prevent errors where the
     //   _trainableWeights inherited from the parent class (Layer) gets
     //   inadvertently used.
@@ -1934,6 +1988,10 @@ export class Container extends Layer {
   }
 
   get nonTrainableWeights(): LayerVariable[] {
+    if (!this.isGraphContainer) {
+      this.collectEagerLayers();
+    }
+
     const weights: LayerVariable[] = [];
     for (const layer of this.layers) {
       weights.push(...layer.nonTrainableWeights);
@@ -2032,6 +2090,12 @@ export class Container extends Layer {
    */
   // tslint:disable-next-line:no-any
   call(inputs: Tensor|Tensor[], kwargs: any): Tensor|Tensor[] {
+    if (!this.isGraphContainer) {
+      throw new NotImplementedError(
+          'The call method of an eager Container needs to be ' +
+          'specified through overriding.');
+    }
+
     inputs = generic_utils.toList(inputs);
     let masks: Tensor[];
 
@@ -2076,6 +2140,12 @@ export class Container extends Layer {
    *   free dimensions, instead of an integer.
    */
   computeOutputShape(inputShape: Shape|Shape[]): Shape|Shape[] {
+    if (!this.isGraphContainer) {
+      throw new NotImplementedError(
+          'The computeOutputShape method of an eager Container needs to be ' +
+          'specified through overriding.');
+    }
+
     const inputShapes = generic_utils.normalizeShapeList(inputShape);
     if (inputShapes.length !== this.inputLayers.length) {
       throw new ValueError(
@@ -2293,18 +2363,59 @@ export class Container extends Layer {
   }
 
   /**
+   * Collect all layers for an eager-style (i.e., non-graph) model.
+   */
+  private collectEagerLayers(): void {
+    if (this.isGraphContainer) {
+      throw new ValueError(
+          'collectEagerLayers is unexpected called for a graph-style model');
+    }
+
+    // tslint:disable:no-any
+    for (const key in (this as any)) {
+      if (!this.hasOwnProperty(key)) {
+        continue;
+      }
+      const value = (this as any)[key];
+      if (value instanceof Layer) {
+        const layer = value as Layer;
+        if (this.layers == null) {
+          this.layers = [];
+        }
+        if (this.layers.map(l => l.name).indexOf(layer.name) === -1) {
+          this.layers.push(layer);
+        }
+      }
+    }
+    // tslint:enable:no-any
+  }
+
+  /**
    * Retrieves a layer based on either its name (unique) or index.
    *
    * Indices are based on order of horizontal graph traversal (bottom-up).
+   *
+   * If the container is an non-graph container, only getting name by layer is
+   * supported.
    *
    * If both `name` and `index` are specified, `index` takes precedence.
    *
    * @param name Name of layer.
    * @param index Index of layer.
    * @returns A Layer instance.
-   * @throws ValueError: In case of invalid layer name or index.
+   * @throws ValueError: In case of invalid layer name or index, or if the
+   *   `index` argument is specified for an eager `Container`.
    */
   getLayer(name?: string, index?: number): Layer {
+    if (!this.isGraphContainer) {
+      if (index != null) {
+        throw new ValueError(
+            'getLayer() should not be called with an index number for an ' +
+            'eager-style Model.');
+      }
+      this.collectEagerLayers();
+    }
+
     if (index != null) {
       if (this.layers.length <= index) {
         throw new ValueError(
@@ -2354,6 +2465,12 @@ export class Container extends Layer {
   }
 
   getConfig(): ConfigDict {
+    if (!this.isGraphContainer) {
+      throw new NotImplementedError(
+          'The getConfig method of an eager Container needs to be ' +
+          'specified through overriding.');
+    }
+
     const config: ConfigDict = {name: this.name};
 
     // Build a map from layer unique name (self._node_key)

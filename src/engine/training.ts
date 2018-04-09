@@ -659,6 +659,7 @@ export class Model extends Container {
    */
   @doc({heading: 'Models', subheading: 'Classes', configParamIndices: [0]})
   compile(config: ModelCompileConfig): void {
+    console.log('In compile()');  // DEBUG
     if (config.loss == null) {
       config.loss = [];
     }
@@ -674,12 +675,25 @@ export class Model extends Container {
       this.optimizer = config.optimizer;
     }
 
+    console.log(`this.optimizer = ${this.optimizer}`);  // DEBUG
+
     // TODO(cais): Add lossWeights.
     // TODO(cais): Add sampleWeightMode.
 
     // Prepare loss functions.
+    console.log(`this.outputNames = ${this.outputNames}`);  // DEBUG
+    console.log(`config.loss = ${config.loss}`);            // DEBUG
     let lossFunctions: LossOrMetricFn[] = [];
-    if (!Array.isArray(config.loss) && typeof config.loss !== 'string') {
+    if (!this.isGraphContainer) {
+      console.log('Branch 0');  // DEBUG
+      if (typeof config.loss !== 'string') {
+        throw new NotImplementedError(
+            'Eager model does not support array or map of losses yet.');
+      }
+      // TODO(cais): Should be able to handle array of losses. DO NOT SUBMIT.
+      console.log(losses.get(config.loss));  // DEBUG
+      lossFunctions.push(losses.get(config.loss));
+    } else if (!Array.isArray(config.loss) && typeof config.loss !== 'string') {
       config.loss = config.loss as {[outputName: string]: string};
       for (const name in config.loss) {
         if (!_.contains(this.outputNames, name)) {
@@ -706,6 +720,7 @@ export class Model extends Container {
       }
       lossFunctions = config.loss.map(l => losses.get(l));
     } else {
+      console.log('Branch 3');  // DEBUG
       const lossFunction = losses.get(config.loss);
       this.outputs.map(layer => {
         lossFunctions.push(lossFunction);
@@ -714,24 +729,31 @@ export class Model extends Container {
 
     this.lossFunctions = lossFunctions;
 
-    this.feedOutputNames = [];
-    this.feedOutputShapes = [];
-    this.feedLossFns = [];
-    for (let i = 0; i < this.outputs.length; ++i) {
-      // TODO(cais): Logic for skipping target(s).
-      const shape = this.internalOutputShapes[i];
-      const name = this.outputNames[i];
-      this.feedOutputNames.push(name);
-      this.feedOutputShapes.push(shape);
-      this.feedLossFns.push(this.lossFunctions[i]);
+    console.log(`this.lossFunctions = ${this.lossFunctions}`);  // DEBUG
+
+    if (this.isGraphContainer) {
+      this.feedOutputNames = [];
+      this.feedOutputShapes = [];
+      this.feedLossFns = [];
+      for (let i = 0; i < this.outputs.length; ++i) {
+        // TODO(cais): Logic for skipping target(s).
+        const shape = this.internalOutputShapes[i];
+        const name = this.outputNames[i];
+        this.feedOutputNames.push(name);
+        this.feedOutputShapes.push(shape);
+        this.feedLossFns.push(this.lossFunctions[i]);
+      }
     }
+
+    console.log('4');  // DEBUG
 
     // TODO(cais): Add logic for weighted losses.
     // TODO(cais): Add logic for output masks.
     // TODO(cais): Add logic for sample weights.
     const skipTargetIndices: number[] = [];
 
-    // Prepare metrics.
+    // Prepare metrics.  // TODO(cais): Make work with eager model. DO NOT
+    // SUBMIT.
     this.metrics = config.metrics;
     // TODO(cais): Add weightedMetrics.
     this.metricsNames = ['loss'];
@@ -742,16 +764,32 @@ export class Model extends Container {
     //   Here, metricsTensors are TypeScript functions. This difference is due
     //   to the difference in symbolic/imperative property of the backends.
     K.nameScope('loss', () => {
-      for (let i = 0; i < this.outputs.length; ++i) {
-        if (skipTargetIndices.indexOf(i) !== -1) {
-          continue;
+      if (this.isGraphContainer) {
+        for (let i = 0; i < this.outputs.length; ++i) {
+          if (skipTargetIndices.indexOf(i) !== -1) {
+            continue;
+          }
+          // TODO(cais): Add weightedLoss, sampleWeight and mask.
+          //   The following line should be weightedLoss
+          const weightedLoss = this.lossFunctions[i];
+          if (this.outputs.length > 1) {
+            this.metricsTensors.push([weightedLoss, i]);
+            this.metricsNames.push(this.outputNames[i] + '_loss');
+          }
         }
-        // TODO(cais): Add weightedLoss, sampleWeight and mask.
-        //   The following line should be weightedLoss
-        const weightedLoss = this.lossFunctions[i];
-        if (this.outputs.length > 1) {
+      } else {
+        // TODO(cais): Move to a separate function.
+        console.log(config.metrics);  // DEBUG
+        if (config.metrics != null && !Array.isArray(config.metrics)) {
+          console.log('Throw!');  // DEBUG
+          throw new NotImplementedError(
+              'Eager model supports only metrics as an Array of strings');
+        }
+        for (let i = 0; i < this.lossFunctions.length; ++i) {
+          console.log(`i = ${i}`);  // DEBUG
+          const weightedLoss = this.lossFunctions[i];
           this.metricsTensors.push([weightedLoss, i]);
-          this.metricsNames.push(this.outputNames[i] + '_loss');
+          this.metricsNames.push(`loss_${i}`);
         }
       }
 
@@ -759,9 +797,16 @@ export class Model extends Container {
       //   the regularizer penalties in the totalLossFunction, instead of here.
     });
 
+    console.log('5');  // DEBUG
+    console.log(`this.trainableWeights = ${this.trainableWeights}`);
+    if (!this.isGraphContainer) {
+      // TODO(cais): Deduplicate. DO NOT SUBMIT.
+      this.collectedTrainableWeights = this.trainableWeights;
+      return;
+    }
+
     const nestedMetrics = collectMetrics(config.metrics, this.outputNames);
     // TODO(cais): Add nestedWeightedMetrics.
-
     /**
      * Helper function used in loop below.
      */
@@ -852,6 +897,8 @@ export class Model extends Container {
       }
     });
 
+    console.log('6');  // DEBUG
+
     // Porting Notes: Given the imperative backend of tfjs-core,
     //   there is no need for constructing the symbolic graph and placeholders.
     this.collectedTrainableWeights = this.trainableWeights;
@@ -910,16 +957,23 @@ export class Model extends Container {
    */
   @doc({heading: 'Models', subheading: 'Classes', configParamIndices: [2]})
   evaluate(
-      x: Tensor|Tensor[], y: Tensor|Tensor[],
-      config: ModelEvaluateConfig = {}): Scalar|Scalar[] {
+      x: Tensor|Tensor[], y: Tensor|Tensor[], config: ModelEvaluateConfig = {}):
+      Scalar|Scalar[] {
     const batchSize = config.batchSize == null ? 32 : config.batchSize;
 
-    // TODO(cais): Standardize `config.sampleWeights` as well.
-    // Validate user data.
-    const standardizedOuts = this.standardizeUserData(x, y, true, batchSize);
+    let ins: Tensor[];
+    if (this.isGraphContainer) {
+      // TODO(cais): Standardize `config.sampleWeights` as well.
+      // Validate user data.
+      const standardizedOuts = this.standardizeUserData(x, y, true, batchSize);
+      ins = standardizedOuts[0].concat(standardizedOuts[1]);
+    } else {
+      ins = Array.isArray(x) ? x : [x];
+      ins = ins.concat(Array.isArray(y) ? y : [y]);
+    }
     // TODO(cais): If uses `useLearningPhase`, set the corresponding element of
     //   the input to 0.
-    const ins = standardizedOuts[0].concat(standardizedOuts[1]);
+
     this.makeTestFunction();
     const f = this.testFunction;
     const testOuts =
@@ -995,21 +1049,26 @@ export class Model extends Container {
       const batchOuts = tfc.tidy(() => {
         const batchStart = batches[batchIndex][0];
         const batchEnd = batches[batchIndex][1];
-        // TODO(cais): Take care of the case of the last element is a flag for
-        //   training/test.
         const insBatch = sliceArrays(ins, batchStart, batchEnd);
+        if (this.isGraphContainer) {
+          // TODO(cais): Take care of the case of the last element is a flag for
+          //   training/test.
 
-        // Construct the feeds for execute();
-        const feeds = [];
-        if (Array.isArray(insBatch)) {
-          for (let i = 0; i < insBatch.length; ++i) {
-            feeds.push({key: this.inputs[i], value: insBatch[i]});
+          // Construct the feeds for execute();
+          const feeds = [];
+          if (Array.isArray(insBatch)) {
+            for (let i = 0; i < insBatch.length; ++i) {
+              feeds.push({key: this.inputs[i], value: insBatch[i]});
+            }
+          } else {
+            feeds.push({key: this.inputs[0], value: insBatch});
           }
+          const feedDict = new FeedDict(feeds);
+          return execute(this.outputs, feedDict) as Tensor[];
         } else {
-          feeds.push({key: this.inputs[0], value: insBatch});
+          const applyOut = this.apply(insBatch) as Tensor | Tensor[];
+          return Array.isArray(applyOut) ? applyOut : [applyOut];
         }
-        const feedDict = new FeedDict(feeds);
-        return execute(this.outputs, feedDict) as Tensor[];
       });
       if (batchIndex === 0) {
         // Pre-allocate.
@@ -1053,7 +1112,9 @@ export class Model extends Container {
   @doc({heading: 'Models', subheading: 'Classes', configParamIndices: [1]})
   predict(x: Tensor|Tensor[], config: ModelPredictConfig = {}): Tensor
       |Tensor[] {
-    checkInputData(x, this.inputNames, this.feedInputShapes, false);
+    if (this.isGraphContainer) {
+      checkInputData(x, this.inputNames, this.feedInputShapes, false);
+    }
     // TODO(cais): Take care of stateful models.
     //   if (this.stateful) ...
     // TODO(cais): Take care of the learning_phase boolean flag.
@@ -1158,6 +1219,7 @@ export class Model extends Container {
       valIns?: Tensor[], shuffle?: boolean|string, callbackMetrics?: string[],
       initialEpoch = 0, stepsPerEpoch?: number,
       validationSteps?: number): Promise<History> {
+    console.log('In fitLoop()');  // DEBUG
     if (batchSize == null) {
       batchSize = 32;
     }
@@ -1381,15 +1443,27 @@ export class Model extends Container {
       return tfc.tidy(() => {
         const valOutputs: Scalar[] = [];
         let totalLoss: Scalar;
-        const inputs = data.slice(0, this.inputs.length);
-        const targets = data.slice(
-            this.inputs.length, this.inputs.length + this.outputs.length);
-        const feeds = [];
-        for (let i = 0; i < this.inputs.length; ++i) {
-          feeds.push({key: this.inputs[i], value: inputs[i]});
+
+        let targets: Tensor[];
+        let outputs: Tensor[];
+        if (this.isGraphContainer) {
+          const inputs = data.slice(0, this.inputs.length);
+          targets = data.slice(
+              this.inputs.length, this.inputs.length + this.outputs.length);
+          const feeds = [];
+          for (let i = 0; i < this.inputs.length; ++i) {
+            feeds.push({key: this.inputs[i], value: inputs[i]});
+          }
+          const feedDict = new FeedDict(feeds);
+          outputs = execute(this.outputs, feedDict) as Tensor[];
+        } else {
+          // TODO(cais): Check data length against this.inputs?
+          const inputs = data.slice(0, 1);
+          targets = data.slice(1, 2);
+          const applyOut = this.apply(inputs) as Tensor | Tensor[];
+          outputs = Array.isArray(applyOut) ? applyOut : [applyOut];
         }
-        const feedDict = new FeedDict(feeds);
-        const outputs = execute(this.outputs, feedDict) as Tensor[];
+
         // Compute total loss.
         for (let i = 0; i < this.lossFunctions.length; ++i) {
           const lossFunction = this.lossFunctions[i];
@@ -1452,13 +1526,36 @@ export class Model extends Container {
       x: Tensor|Tensor[]|{[inputName: string]: Tensor},
       y: Tensor|Tensor[]|{[inputName: string]: Tensor},
       config: ModelFitConfig = {}): Promise<History> {
+    console.log('In fit()');
     const batchSize = config.batchSize == null ? 32 : config.batchSize;
 
     // Validate user data.
     // TODO(cais): Add sampleWeight and  classWeight.
-    const standardizedOuts = this.standardizeUserData(x, y, false, batchSize);
-    let inputs = standardizedOuts[0];
-    let targets = standardizedOuts[1];
+    let inputs: Tensor[];
+    let targets: Tensor[];
+    if (this.isGraphContainer) {
+      const standardizedOuts = this.standardizeUserData(x, y, false, batchSize);
+      inputs = standardizedOuts[0];
+      targets = standardizedOuts[1];
+    } else {
+      if (!Array.isArray(x) && !(x instanceof Tensor)) {
+        throw new ValueError();  // TODO(cais): DO NOT SUBMIT.
+      }
+      if (!Array.isArray(y) && !(y instanceof Tensor)) {
+        throw new ValueError();  // TODO(cais): DO NOT SUBMIT.
+      }
+      inputs = Array.isArray(x) ? x : [x as Tensor];
+      targets = Array.isArray(y) ? y : [y as Tensor];
+      if (!this.built) {
+        // If the Model is not built yet, call apply() once so it is built
+        // first.
+        this.apply(inputs);
+        this.collectedTrainableWeights = this.trainableWeights;
+        // TODO(cais): There probably should be a dirty bit to keep track of
+        //   newly added layers.
+      }
+    }
+    console.log('F1: this.built = ' + this.built);  // DEBUG
     // TODO(cais): Make use of sampleWeights in standardizedOuts[2] when
     //   available.
 
@@ -1536,27 +1633,53 @@ export class Model extends Container {
     //   4) calculate the metrics
     //   5) return the values of the losses and metrics.
     const trainFunction = (data: Tensor[]) => {
+      console.log('trainFunction1');  // DEBUG
       const losses: Tensor[] = [];
       const lossValues: Scalar[] = [];
 
-      const inputs = data.slice(0, this.inputs.length);
-      const targets = data.slice(
-          this.inputs.length, this.inputs.length + this.outputs.length);
+      console.log('trainFunction2');  // DEBUG
+
+      let inputs: Tensor[];
+      if (this.isGraphContainer) {
+        inputs = data.slice(0, this.inputs.length);
+        targets = data.slice(
+            this.inputs.length, this.inputs.length + this.outputs.length);
+      } else {
+        if (data.length !== 2) {
+          throw new ValueError();  // TODO(cais): DO NOT SUBMIT.
+        }
+        inputs = data.slice(0, 1);
+        targets = data.slice(1, 2);
+      }
+
+      console.log('trainFunction3');  // DEBUG
 
       const metricsValues: Scalar[] = [];
 
       // Create a function that computes the total loss based on the inputs.
       // This function is used for obtaining gradients through backprop.
       const totalLossFunction = () => {
-        const feeds = [];
-        for (let i = 0; i < this.inputs.length; ++i) {
-          feeds.push({key: this.inputs[i], value: inputs[i]});
+        console.log('totalLossFunction1');  // DEBUG
+
+        let outputs: Tensor[];
+        if (this.isGraphContainer) {
+          // Graph model.
+          const feeds = [];
+          for (let i = 0; i < this.inputs.length; ++i) {
+            feeds.push({key: this.inputs[i], value: inputs[i]});
+          }
+          const feedDict = new FeedDict(feeds);
+          outputs =
+              execute(this.outputs, feedDict, {'training': true}) as Tensor[];
+          // TODO(cais): Take care of the case of multiple outputs from a
+          //   single layer?
+        } else {
+          const applyOut = this.apply(inputs) as Tensor | Tensor[];
+          outputs = Array.isArray(applyOut) ? applyOut : [applyOut];
         }
-        const feedDict = new FeedDict(feeds);
-        const outputs =
-            execute(this.outputs, feedDict, {'training': true}) as Tensor[];
-        // TODO(cais): Take care of the case of multiple outputs from a
-        //   single layer?
+
+        console.log(`totalLossFunction2: outputs[0] = ${
+            outputs[0].dataSync()}`);  // DEBUG
 
         let totalLoss: Tensor;
         for (let i = 0; i < this.lossFunctions.length; ++i) {
@@ -1574,22 +1697,31 @@ export class Model extends Container {
           }
         }
 
+        console.log(`1. totalLoss = ${totalLoss.dataSync()}`);  // DEBUG
+
         // Compute the metrics.
         // TODO(cais): These should probably be calculated outside
         //   totalLossFunction to benefit speed?
+        console.log(`1.5. this.metricsTensors = ${
+            JSON.stringify(this.metricsTensors)}`);  // DEBUG
         for (let i = 0; i < this.metricsTensors.length; ++i) {
           const metric = this.metricsTensors[i][0];
+          console.log(`1.5: metric = ${metric}`);  // DEBUG
           const outputIndex = this.metricsTensors[i][1];
+          console.log(`1.5: outputIndex = ${outputIndex}`);  // DEBUG
           // TODO(cais): Replace K.mean() with a proper weighting function.
           const meanMetric =
               K.mean(metric(targets[outputIndex], outputs[outputIndex])) as
               Scalar;
+          console.log(`1.5: meanMetric = ${meanMetric.dataSync()}`);  // DEBUG
           K.keep(meanMetric);
           // TODO(cais): Use a scope() instead, to avoid ownership.
           metricsValues.push(meanMetric);
         }
 
         totalLoss = K.mean(totalLoss);
+
+        console.log(`2. totalLoss = ${totalLoss.dataSync()}`);  // DEBUG
 
         // Add regularizer penalties.
         this.calculateLosses().forEach(regularizerLoss => {
@@ -1599,11 +1731,17 @@ export class Model extends Container {
         return totalLoss as Scalar;
       };
 
+      console.log(
+          'trainFunction4: this.collectedTrainableWeights = ' +
+          JSON.stringify(this.collectedTrainableWeights));  // DEBUG
+
       const variables = this.collectedTrainableWeights.map(
           param => param.read() as tfc.Variable);
       const returnCost = true;
       const totalLossValue =
           this.optimizer.minimize(totalLossFunction, returnCost, variables);
+
+      console.log('trainFunction5');  // DEBUG
 
       return [totalLossValue].concat(metricsValues);
     };
