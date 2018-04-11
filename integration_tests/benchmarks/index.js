@@ -12,6 +12,11 @@ import * as tfc from '@tensorflow/tfjs-core';
 import * as tfl from '@tensorflow/tfjs-layers';
 import * as ui from './ui';
 
+console.log(tfc);          // DEBUG
+console.log(tfl);          // DEBUG
+console.log(tfc.version);  // DEBUG
+console.log(tfl.version);  // DEBUG
+
 async function runBenchmark(artifactsDir, modelName, config) {
   const modelPath = artifactsDir + modelName + '/';
   console.log('Loading model "' + modelName + '" and benchmark data...');

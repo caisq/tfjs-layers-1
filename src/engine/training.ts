@@ -13,6 +13,7 @@
 // tslint:disable:max-line-length
 import * as tfc from '@tensorflow/tfjs-core';
 import {doc, Optimizer, Scalar, Tensor, Tensor1D, tensor1d, util} from '@tensorflow/tfjs-core';
+import {WeightsManifestConfig, WeightsManifestGroupConfig} from '@tensorflow/tfjs-core/dist/weights_loader';
 
 import * as K from '../backend/tfjs_backend';
 import {BaseLogger, Callback, CallbackList, CustomCallbackConfig, disposeTensorsInLogs, History, standardizeCallbacks, UnresolvedLogs} from '../callbacks';
@@ -20,8 +21,8 @@ import {NotImplementedError, RuntimeError, ValueError} from '../errors';
 import * as losses from '../losses';
 import * as Metrics from '../metrics';
 import * as optimizers from '../optimizers';
-import {LayerVariable, LossOrMetricFn, Shape} from '../types';
-import {ClassNameMap, count, singletonOrArray, unique} from '../utils/generic_utils';
+import {JsonDict, LayerVariable, LossOrMetricFn, Shape} from '../types';
+import {ClassNameMap, concatenateFloat32Arrays, count, singletonOrArray, unique} from '../utils/generic_utils';
 import {range} from '../utils/math_utils';
 
 import {execute, FeedDict} from './executor';
@@ -1639,6 +1640,39 @@ export class Model extends Container {
     // TODO(cais): Add value to outLabels.
     // TODO(cais): Add initialEpoch.
   }
-}
 
+  async save(): Promise<[
+    {modelTopology: JsonDict, weightsManifest: WeightsManifestConfig},
+    Float32Array
+  ]> {
+    const modelConfig = this.getConfig();
+    // TODO(cais): Add weights manifest.
+    const weightsTensors = this.getWeights();
+    const weightsValues =
+        await Promise.all(weightsTensors.map(tensor => tensor.data()));
+    // const weightsDict:
+    //     {[weightName: string]: Float32Array|Int32Array|Uint8Array} = {};
+    const weightsEntry: WeightsManifestGroupConfig = {paths: null, weights: []};
+    for (let i = 0; i < this.weights.length; ++i) {
+      // weightsDict[this.weights[i].name] = weightsValues[i];
+      const dtype = this.weights[i].dtype;
+      if (dtype !== 'float32') {
+        throw new NotImplementedError(
+            `Model.save() does not support non-float32 data types yet. ` +
+            `Received data type ${dtype} for weight named ` +
+            `${this.weights[i].name}`);
+      }
+      weightsEntry.weights.push({
+        name: this.weights[i].name,
+        shape: this.weights[i].shape,
+        dtype: dtype as 'float32',
+      });
+    }
+    const weightsData =
+        concatenateFloat32Arrays(weightsValues as Float32Array[]);
+    return [
+      {modelTopology: modelConfig, weightsManifest: [weightsEntry]}, weightsData
+    ];
+  }
+}
 ClassNameMap.register('Model', Model);

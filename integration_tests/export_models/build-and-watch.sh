@@ -18,15 +18,11 @@ set -e
 
 DEMO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-SKIP_PYTHON_BENCHMAKRS=0
 DEMO_PORT=8000
 while true; do
   if [[ "$1" == "--port" ]]; then
     DEMO_PORT=$2
     shift 2
-  elif [[ "$1" == "--skip_python_benchmarks" ]]; then
-    SKIP_PYTHON_BENCHMAKRS=1
-    shift
   elif [[ -z "$1" ]]; then
     break
   else
@@ -36,19 +32,6 @@ while true; do
 done
 
 DATA_ROOT="${DEMO_DIR}/dist/data"
-
-# Run Python script to generate the model and weights JSON files.
-# The extension names are ".js" because they will later be converted into
-# sourceable JavaScript files.
-
-# Make sure you install the tensorflowjs pip package first.
-
-if [[ ${SKIP_PYTHON_BENCHMAKRS} == 0 ]]; then
-  echo Running Python Keras benchmarks...
-  python "${DEMO_DIR}/python/benchmarks.py" "${DATA_ROOT}"
-else
-  echo Sikipped Python Keras benchmarks...
-fi
 
 echo Building local TensorFlow.js Layers NPM package...
 cd ../..

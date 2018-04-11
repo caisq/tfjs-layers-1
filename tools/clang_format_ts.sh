@@ -54,25 +54,28 @@ fi
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CLANG_FORMAT_PREFIX="${SCRIPT_DIR}/../node_modules/.bin/clang-format -i --verbose --style=google"
 if [[ "${FILE_SCOPE}" == "__touched__" ]]; then
-  TOUCHED_TS_FILES="$(git status --porcelain | grep '.*\.ts$' | sed s/^...//)"
-
-  if [[ -z "${TOUCHED_TS_FILES}" ]]; then
+  TOUCHED_JS_TS_FILES="$(git status --porcelain | grep '.*\.[j|t]s$' | sed s/^...//)"
+  if [[ -z "${TOUCHED_JS_TS_FILES}" ]]; then
     exit 0
   else
     pushd "${SCRIPT_DIR}/.." > /dev/null
-    for TS_FILE in ${TOUCHED_TS_FILES}; do
-      if [[ -f ${TS_FILE} ]]; then
-        ${CLANG_FORMAT_PREFIX} "${TS_FILE}"
+    for JS_TS_FILE in ${TOUCHED_JS_TS_FILES}; do
+      if [[ -f ${JS_TS_FILE} ]]; then
+        ${CLANG_FORMAT_PREFIX} "${JS_TS_FILE}"
       fi
     done
     popd > /dev/null
   fi
 elif [[ "${FILE_SCOPE}" == "__all__" ]]; then
-  ALL_TS_FILES="$(find "${SCRIPT_DIR}/../src" "${SCRIPT_DIR}/../demos" -name '*.ts')"
+  ALL_TS_FILES="$(find "${SCRIPT_DIR}/../src" -name '*.ts')"
   for TS_FILE in ${ALL_TS_FILES}; do
     ${CLANG_FORMAT_PREFIX} "${TS_FILE}"
   done
 
+  ALL_JS_FILES="$(find "${SCRIPT_DIR}/../integration_tests" -name '*.js')"
+  for JS_FILE in ${ALL_JS_FILES}; do
+    ${CLANG_FORMAT_PREFIX} "${JS_FILE}"
+  done
 else
   ${CLANG_FORMAT_PREFIX} ${FILE_SCOPE}
 fi

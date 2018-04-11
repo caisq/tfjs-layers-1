@@ -1,5 +1,5 @@
 {
-  "name": "tfjs-layers-benchmarks",
+  "name": "tfjs-layers-export-models",
   "version": "0.1.2",
   "description": "",
   "main": "index.js",

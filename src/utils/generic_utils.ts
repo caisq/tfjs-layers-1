@@ -520,3 +520,29 @@ export function isObjectEmpty(obj: {}): boolean {
   }
   return true;
 }
+
+export function concatenateFloat32Arrays(xs: Float32Array[]): Float32Array {
+  if (xs === null) {
+    return null;
+  }
+  if (xs === undefined) {
+    return undefined;
+  }
+  if (xs.length === 0) {
+    return new Float32Array(0);
+  }
+
+  let totalLength = 0;
+  for (const x of xs) {
+    totalLength += x.length;
+  }
+
+  const y = new Float32Array(totalLength);
+  let offset = 0;
+  for (const x of xs) {
+    y.set(x, offset);
+    offset += x.length;
+  }
+
+  return y;
+}
