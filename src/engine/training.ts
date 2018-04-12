@@ -21,11 +21,11 @@ import {NotImplementedError, RuntimeError, ValueError} from '../errors';
 import * as losses from '../losses';
 import * as Metrics from '../metrics';
 import * as optimizers from '../optimizers';
-
-import {LayerVariable, LossOrMetricFn, ModelAndWeightsConfig, Shape} from '../types';
+import {LayerVariable, LossOrMetricFn, Shape} from '../types';
 import {ClassNameMap, concatenateArrays, count, singletonOrArray, unique} from '../utils/generic_utils';
 import {range} from '../utils/math_utils';
 import {execute, FeedDict} from './executor';
+import {SaveModelHandler} from './save_load';
 import {Container, ContainerConfig} from './topology';
 // tslint:enable:max-line-length
 
@@ -1641,7 +1641,7 @@ export class Model extends Container {
     // TODO(cais): Add initialEpoch.
   }
 
-  async save(handler: SaveModelHandler): Promise<void> {
+  async save(handlers: SaveModelHandler|SaveModelHandler[]): Promise<void> {
     const modelConfig = this.getConfig();
     // TODO(cais): Add weights manifest.
     const weightsTensors = this.getWeights();
@@ -1666,12 +1666,15 @@ export class Model extends Container {
       });
     }
     const weightsData = concatenateArrays(weightsValues as Float32Array[]);
-    return handler(
-        {modelTopology: modelConfig, weightsManifest: [weightsEntry]},
-        weightsData);
+
+    if (!Array.isArray(handlers)) {
+      handlers = [handlers];
+    }
+    for (const handler of handlers) {
+      handler(
+          {modelTopology: modelConfig, weightsManifest: [weightsEntry]},
+          weightsData);
+    }
   }
 }
 ClassNameMap.register('Model', Model);
-
-export type SaveModelHandler =
-    (config: ModelAndWeightsConfig, weightsData: ArrayBuffer) => Promise<void>;

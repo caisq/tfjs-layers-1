@@ -31,12 +31,21 @@ https://opensource.org/licenses/MIT.
   .metadata {
     padding-left: 1em;
   }
+
+  a.button {
+    -webkit-appearance: button;
+    -moz-appearance: button;
+    appearance: button;
+
+    text-decoration: none;
+    color: initial;
+  }
 </style>
 
 <body>
   <h1>TensorFlow.js Layers: Model Export Demo</h1>
-  <a href="javascript:void(null)" id="download-json" url="">Download model.json</a>
-  <a href="javascript:void(null)" id="download-weights">Download weights</a>
+  <a href="javascript:void(null)" id="download-json" url="" class="button">Download model.json</a>
+  <a href="javascript:void(null)" id="download-weights" class="button">Download weights</a>
 
   <div>
     <div>
@@ -50,6 +59,11 @@ https://opensource.org/licenses/MIT.
     <div>
       <button id="upload-model">Upload Model</button>
     </div>
+  </div>
+
+  <div>
+    <button id="save-to-local-storage">Save to local storage</button>
+    <button id="load-from-local-storage">Load from local storage</button>
   </div>
 
   <script src='index.js'></script>

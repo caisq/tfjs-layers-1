@@ -12,7 +12,7 @@
 
 // tslint:disable:max-line-length
 import * as backend from './backend/tfjs_backend';
-import {ConstraintExports, InitializerExports, LayerExports, MetricExports, ModelExports, RegularizerExports} from './exports';
+import {ConstraintExports, InitializerExports, LayerExports, MetricExports, ModelExports, RegularizerExports, SaveLoadHandlers} from './exports';
 
 export {Callback, CallbackList, CustomCallback, CustomCallbackConfig, Logs} from './callbacks';
 export {Model, ModelCompileConfig, ModelEvaluateConfig, ModelFitConfig, ModelPredictConfig} from './engine/training';
@@ -36,3 +36,5 @@ export const constraints = ConstraintExports;
 export const initializers = InitializerExports;
 export const metrics = MetricExports;
 export const regularizers = RegularizerExports;
+
+export const savers = SaveLoadHandlers;

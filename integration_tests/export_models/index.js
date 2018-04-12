@@ -14,24 +14,14 @@ import * as tfl from '@tensorflow/tfjs-layers';
 async function runExportModelDemo(artifactsDir, modelName, config) {
   const tf = tfl;
   const model =
-      tf.sequential({layers: [tf.layers.dense({units: 1, inputShape: [100]})]});
-  model.save(async (modelAndWeightsConfig, weightsData) => {
-    console.log('modelAndWeightsConfig = ', modelAndWeightsConfig);  // DEBUG
-    const downloadJSON = document.getElementById('download-json');
-    const jsonBlob = new Blob(
-        [JSON.stringify(modelAndWeightsConfig)], {type: 'application/json'});
-    const jsonUrl = window.URL.createObjectURL(jsonBlob);
-    downloadJSON.href = jsonUrl;
-    downloadJSON.download = 'model.json';
-
-    console.log('weightsData = ', weightsData);  // DEBUG
-    const downloadWeights = document.getElementById('download-weights');
-    const weightsBlob =
-        new Blob([weightsData], {type: 'application/octet-stream'});
-    const weightsUrl = window.URL.createObjectURL(weightsBlob);
-    downloadWeights.href = weightsUrl;
-    downloadWeights.download = 'weights.bin';
-  });
+      tf.sequential({layers: [tf.layers.dense({units: 1, inputShape: [200]})]});
+  model.save([
+    tf.savers.toLocalStorage('myModel'),
+    tf.savers.toDownloadAnchors(
+        document.getElementById('download-json'),
+        document.getElementById('download-weights'), 'model1.json',
+        'weights1.bin')
+  ]);
 
   const uploadJSON = document.getElementById('upload-json');
   const uploadWeights = document.getElementById('upload-weights');

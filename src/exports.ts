@@ -16,6 +16,7 @@
 import {doc, Tensor} from '@tensorflow/tfjs-core';
 
 import {Constraint, MaxNorm, MaxNormConfig, MinMaxNorm, MinMaxNormConfig, NonNeg, UnitNorm, UnitNormConfig} from './constraints';
+import {SaveModelHandler, toDownloadAnchors, toLocalStorage} from './engine/save_load';
 import {ContainerConfig, Input, InputConfig, InputLayer, InputLayerConfig, Layer, LayerConfig} from './engine/topology';
 import {Model} from './engine/training';
 import {Constant, ConstantConfig, GlorotNormal, GlorotUniform, HeNormal, Identity, IdentityConfig, Initializer, LeCunNormal, Ones, Orthogonal, OrthogonalConfig, RandomNormal, RandomNormalConfig, RandomUniform, RandomUniformConfig, SeedOnlyInitializerConfig, TruncatedNormal, TruncatedNormalConfig, VarianceScaling, VarianceScalingConfig, Zeros} from './initializers';
@@ -970,4 +971,21 @@ export class RegularizerExports {
   static l2(config?: L2Config): Regularizer {
     return l2(config);
   }
+}
+
+export class SaveLoadHandlers {
+  static toLocalStorage(modelName: string): SaveModelHandler {
+    return toLocalStorage(modelName);
+  }
+
+  static toDownloadAnchors(
+      modelJSONAnchor: HTMLAnchorElement, weightsDataAnchor: HTMLAnchorElement,
+      modelJSONFileName = 'model.json', weightsDataFileName = 'weights.bin',
+      triggerDownload = false): SaveModelHandler {
+    return toDownloadAnchors(
+        modelJSONAnchor, weightsDataAnchor, modelJSONFileName,
+        weightsDataFileName, triggerDownload);
+  }
+
+  // TODO(cais): toPOST.
 }
