@@ -13,22 +13,25 @@ import * as tfl from '@tensorflow/tfjs-layers';
 
 async function runExportModelDemo(artifactsDir, modelName, config) {
   const tf = tfl;
-  const model = tf.sequential({
-    layers: [tf.layers.dense({units: 1, inputShape: [100]})]
+  const model =
+      tf.sequential({layers: [tf.layers.dense({units: 1, inputShape: [100]})]});
+  model.save(async (modelAndWeightsConfig, weightsData) => {
+    console.log('modelAndWeightsConfig = ', modelAndWeightsConfig);  // DEBUG
+    const downloadJSON = document.getElementById('download-json');
+    const jsonBlob = new Blob(
+        [JSON.stringify(modelAndWeightsConfig)], {type: 'application/json'});
+    const jsonUrl = window.URL.createObjectURL(jsonBlob);
+    downloadJSON.href = jsonUrl;
+    downloadJSON.download = 'model.json';
+
+    console.log('weightsData = ', weightsData);  // DEBUG
+    const downloadWeights = document.getElementById('download-weights');
+    const weightsBlob =
+        new Blob([weightsData], {type: 'application/octet-stream'});
+    const weightsUrl = window.URL.createObjectURL(weightsBlob);
+    downloadWeights.href = weightsUrl;
+    downloadWeights.download = 'weights.bin';
   });
-  const data = await model.save();
-
-  const downloadJSON = document.getElementById('download-json');
-  const jsonBlob = new Blob([JSON.stringify(data[0])], {type: 'application/json'});
-  const jsonUrl = window.URL.createObjectURL(jsonBlob);
-  downloadJSON.href = jsonUrl;
-  downloadJSON.download = 'model.json';
-
-  const downloadWeights = document.getElementById('download-weights');
-  const weightsBlob = new Blob([data[1]], {type: 'application/octet-stream'});
-  const weightsUrl = window.URL.createObjectURL(weightsBlob);
-  downloadWeights.href = weightsUrl;
-  downloadWeights.download = 'weights.bin';
 
   const uploadJSON = document.getElementById('upload-json');
   const uploadWeights = document.getElementById('upload-weights');
@@ -50,16 +53,11 @@ async function runExportModelDemo(artifactsDir, modelName, config) {
         const buffer = event.target.result;
         const array = new Float32Array(buffer);
         console.log('Weights load end: length: ' + array.length);  // DEBUG
-        console.log('Weights load end: element 0: ' + array[0]);  // DEBUG
+        console.log('Weights load end: element 0: ' + array[0]);   // DEBUG
       };
       reader.readAsArrayBuffer(uploadWeights.files[0]);
     }
   });
-
-  // downloadWeights.addEventListener('click', () => {
-  //   console.log('Download weights!');
-  //   downloadWeights.click();
-  // });
 }
 
 runExportModelDemo();

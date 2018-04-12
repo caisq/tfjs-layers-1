@@ -345,3 +345,7 @@ export abstract class Serializable {
    */
   abstract getConfig(): ConfigDict;
 }
+export type ModelAndWeightsConfig = {
+  modelTopology: JsonDict,
+  weightsManifest: tfc.WeightsManifestConfig
+};

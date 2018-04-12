@@ -521,7 +521,9 @@ export function isObjectEmpty(obj: {}): boolean {
   return true;
 }
 
-export function concatenateFloat32Arrays(xs: Float32Array[]): Float32Array {
+// TODO(cais): Unit test coverage.
+export function concatenateArrays(
+    xs: Array<Float32Array|Int32Array|Uint8Array>): ArrayBuffer {
   if (xs === null) {
     return null;
   }
@@ -529,20 +531,33 @@ export function concatenateFloat32Arrays(xs: Float32Array[]): Float32Array {
     return undefined;
   }
   if (xs.length === 0) {
-    return new Float32Array(0);
+    return new ArrayBuffer(0);
   }
 
-  let totalLength = 0;
+  let totalByteLength = 0;
   for (const x of xs) {
-    totalLength += x.length;
+    if (x instanceof Float32Array || x instanceof Int32Array) {
+      totalByteLength += x.length * 4;
+    } else if (x instanceof Uint16Array) {
+      totalByteLength += x.length;
+    } else {
+      throw new ValueError(
+          `Unsupported type array subtype: ${x.constructor.name}`);
+    }
   }
 
-  const y = new Float32Array(totalLength);
+  const y = new Uint8Array(totalByteLength);
   let offset = 0;
   for (const x of xs) {
-    y.set(x, offset);
-    offset += x.length;
+    console.log('offset = ' + offset);  // DEBUG
+    console.log('Setting x: ', x);      // DEBUG
+    y.set(new Uint8Array(x.buffer), offset);
+    if (x instanceof Float32Array || x instanceof Int32Array) {
+      offset += x.length * 4;
+    } else {
+      offset += x.length;
+    }
   }
 
-  return y;
+  return y.buffer;
 }
