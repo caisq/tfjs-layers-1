@@ -867,6 +867,10 @@ export class Model extends Container {
     this.collectedTrainableWeights = this.trainableWeights;
   }
 
+  protected getClassName(): string {
+    return 'Model';
+  }
+
   /**
    * Check trainable weights count consistency.
    *
@@ -1642,7 +1646,7 @@ export class Model extends Container {
   }
 
   async save(handlers: SaveModelHandler|SaveModelHandler[]): Promise<void> {
-    const modelConfig = this.getConfig();
+    const modelConfig = this.toJSON(false) as JsonDict;
     // TODO(cais): Add weights manifest.
     const weightsTensors = this.getWeights();
     const weightsValues =

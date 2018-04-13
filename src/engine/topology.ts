@@ -2007,15 +2007,22 @@ export abstract class Container extends Layer {
     }
   }
 
+  getClassName(): string {
+    return 'Container';
+  }
+
   /**
    * Util shared between different serialization methods.
    * @returns Model config with Keras version information added.
    */
+  // TODO(cais): Decide on nesting. DO NOT SUBMIT.
   private updatedConfig(): ConfigDict {
     const theConfig = this.getConfig();
     const modelConfig: ConfigDict = {
-      className: this.getClassName(),
-      config: theConfig,
+      modelConfig: {
+        className: this.getClassName(),
+        config: theConfig,
+      },
       // TODO(nielsene): Replace with Version constant once a
       // release workflow and versioning approach are selected.
       kerasVersion: 'tfjs-layers pre-release',
@@ -2035,9 +2042,10 @@ export abstract class Container extends Layer {
    * @returns a JSON string
    */
   // tslint:disable-next-line:no-any
-  toJSON(unused?: any): string {
+  toJSON(returnString = true): string|JsonDict {
     const modelConfig = this.updatedConfig();
-    return JSON.stringify(convertTsToPythonic(modelConfig));
+    const output = convertTsToPythonic(modelConfig) as JsonDict;
+    return returnString ? JSON.stringify(output) : output;
   }
 
   /**

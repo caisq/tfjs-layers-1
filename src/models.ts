@@ -186,9 +186,11 @@ export class Sequential extends Model {
       }
     }
   }
-  getClassName(): string {
+
+  protected getClassName(): string {
     return 'Sequential';
   }
+
   /**
    * Adds a layer instance on top of the layer stack.
    *

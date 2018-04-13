@@ -85,7 +85,7 @@ export function toDownloadAnchors(
 //   }
 //   return () => {
 //     const configJSON = JSON.parse(localStorage.getItem(modelName + '-config')
-//    as ModelAndWeightsConfig;
+//        as ModelAndWeightsConfig;
 //     const base64WeightsData = localStoraget.getItem(modelName + '-weights');
 
 //   };
