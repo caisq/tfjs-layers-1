@@ -541,6 +541,7 @@ export class Sequential extends Model {
   }
 
   // TODO(cais): Override get trainableWeights() here
+<<<<<<< HEAD
 
   // tslint:disable-next-line:no-any
   getConfig(): any {
@@ -556,5 +557,8 @@ export class Sequential extends Model {
     }
     return config;
   }
+=======
+  // TODO(cais): Overrride getConfig(): DO NOT SUBMIT.
+>>>>>>> WIP5
 }
 generic_utils.ClassNameMap.register('Sequential', Sequential);
