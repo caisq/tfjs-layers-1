@@ -137,6 +137,29 @@ export class ClassNameMap {
         // tslint:disable-next-line:no-any
         [cls, (cls as any).fromConfig];
   }
+
+  // TODO(cais): Decide keep or discard. DO NOT SUBMIT.
+  static reverseLookup(cls: Function): string {
+    console.log('In reverseLookup');  // DEBUG
+    if (ClassNameMap.instance == null) {
+      throw new ValueError('ClassNameMap has not been instantiated yet.');
+    }
+    const map = this.getMap().pythonClassNameMap;
+    for (const key in map) {
+      console.log(`key = ${key}`);  // DEBUG
+      // console.log(`val = ${map[key]}`);  //  DEBUG
+      if (key === 'Model') {
+        console.log(`value = ${map[key]}`);  // DEBUG
+        console.log(`value.prototype = ${map[key].prototype}`);  // DEBUG
+      }
+      if (map[key].prototype === cls) {
+        console.log(`returning key ${key}`);  // DEBUG
+        return key;
+      }
+    }
+    console.log('Returning null');  // DEBUG
+    return null;
+  }
 }
 
 export class SerializableEnumRegistry {
@@ -463,6 +486,7 @@ export function stringToDType(dtype: string): DType {
   }
 }
 
+<<<<<<< HEAD
 /**
  * Test the element-by-element equality of two Arrays of strings.
  * @param xs First array of strings.
@@ -522,6 +546,9 @@ export function isObjectEmpty(obj: {}): boolean {
 }
 
 // TODO(cais): Unit test coverage.
+=======
+// TODO(cais): Unit test coverage. DO NOT SUBMIT.
+>>>>>>> WIP6
 export function concatenateArrays(
     xs: Array<Float32Array|Int32Array|Uint8Array>): ArrayBuffer {
   if (xs === null) {

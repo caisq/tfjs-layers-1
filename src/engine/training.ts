@@ -867,10 +867,6 @@ export class Model extends Container {
     this.collectedTrainableWeights = this.trainableWeights;
   }
 
-  protected getClassName(): string {
-    return 'Model';
-  }
-
   /**
    * Check trainable weights count consistency.
    *
@@ -1647,6 +1643,16 @@ export class Model extends Container {
 
   async save(handlers: SaveModelHandler|SaveModelHandler[]): Promise<void> {
     const modelConfig = this.toJSON(false) as JsonDict;
+    // Move fields `className` and `config` under `model_config` to be consistent
+    // with the JSON format in Keras HDF5 files.
+    // modelConfig['model_config'] = {
+    //   class_name: modelConfig['class_name'],
+    //   config: modelConfig['config'],
+    // };
+    // delete modelConfig['className'];
+    // delete modelConfig['config'];
+    // TODO(cais): Decide on calling convertTsToPythonic. DO NOT SUBMIT.
+
     // TODO(cais): Add weights manifest.
     const weightsTensors = this.getWeights();
     const weightsValues =

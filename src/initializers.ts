@@ -487,6 +487,8 @@ export class GlorotNormal extends VarianceScaling {
   }
 }
 ClassNameMap.register('GlorotNormal', GlorotNormal);
+// TODO(cais): Python Keras does not have a class called "GlorotNormal!".
+//   It defers to the super class "VarianceScaling"!
 
 /**
  * He normal initializer.

@@ -540,6 +540,7 @@ export class Sequential extends Model {
     return model;
   }
 
+<<<<<<< HEAD
   // TODO(cais): Override get trainableWeights() here
 <<<<<<< HEAD
 
@@ -552,13 +553,29 @@ export class Sequential extends Model {
     for (const layer of this.layers) {
       config.push({
         className: layer.getClassName(),
+=======
+  // NOTE(cais): We override the return type of getConfig() to any below,
+  //   because Sequential is a special case among Containers and Layers, in
+  //   that its getConfig() method returns an array (not a dict).
+  // TODO(cais): Test coverage. DO NOT SUBMIT.
+  // tslint:disable-next-line:no-any
+  getConfig(): any {
+    const config: ConfigDict[] = [];
+    for (const layer of this.layers) {
+      config.push({
+        className: layer.constructor.name,
+        // TODO(cais): Decide on how to deal with uglify. DO NOT SUBMIT.
+>>>>>>> WIP6
         config: layer.getConfig(),
       });
     }
     return config;
   }
+<<<<<<< HEAD
 =======
   // TODO(cais): Overrride getConfig(): DO NOT SUBMIT.
 >>>>>>> WIP5
+=======
+>>>>>>> WIP6
 }
 generic_utils.ClassNameMap.register('Sequential', Sequential);

@@ -107,10 +107,10 @@ describeMathCPU('model_from_json', () => {
         .then(model => {
           const serializedModel = model.toJSON() as string;
           const reparsedJson = JSON.parse(serializedModel);
-          expect(reparsedJson['model_config']['class_name'])
+          expect(reparsedJson['class_name'])
               .toEqual(fakeRoundtripModel.modelTopology['class_name']);
           // Intentionally skipping backend and keras_version fields.
-          expect(reparsedJson['model_config']['config'])
+          expect(reparsedJson['config'])
               .toEqual(fakeRoundtripModel.modelTopology['config']);
         })
         .then(done)

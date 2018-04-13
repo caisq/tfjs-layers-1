@@ -2007,22 +2007,23 @@ export abstract class Container extends Layer {
     }
   }
 
+<<<<<<< HEAD
   getClassName(): string {
     return 'Container';
   }
 
+=======
+>>>>>>> WIP6
   /**
    * Util shared between different serialization methods.
    * @returns Model config with Keras version information added.
    */
-  // TODO(cais): Decide on nesting. DO NOT SUBMIT.
   private updatedConfig(): ConfigDict {
     const theConfig = this.getConfig();
+    console.log(`Calling reverseLookup with ${this.constructor}`);  // DEBUG
     const modelConfig: ConfigDict = {
-      modelConfig: {
-        className: this.getClassName(),
-        config: theConfig,
-      },
+      className: this.constructor.name,
+      config: theConfig,
       // TODO(nielsene): Replace with Version constant once a
       // release workflow and versioning approach are selected.
       kerasVersion: 'tfjs-layers pre-release',
