@@ -11,7 +11,7 @@
 /* Original source: keras/engine/topology.py */
 
 // tslint:disable:max-line-length
-import {doc, Scalar, Tensor, tidy} from '@tensorflow/tfjs-core';
+import {doc, Scalar, Tensor, tidy, util} from '@tensorflow/tfjs-core';
 import * as _ from 'underscore';
 
 import * as K from '../backend/tfjs_backend';
@@ -704,7 +704,7 @@ export class Layer {
           // ensure type safety through Underscore calls.
           const xShapeAtAxis =
               axis >= 0 ? xShape[axis] : xShape[xShape.length + axis];
-          if (value != null && !_.contains([value, null], xShapeAtAxis)) {
+          if (value != null && [value, null].indexOf(xShapeAtAxis) === -1) {
             throw new ValueError(
                 `Input ${inputIndex} is incompatible with layer ` +
                 `${this.name}: expected axis ${axis} of input shape to ` +
@@ -716,7 +716,9 @@ export class Layer {
       // Check shape.
       if (spec.shape != null) {
         const xShape = K.intShape(x);
-        for (const [specDim, dim] of _.zip(spec.shape, xShape)) {
+        for (let i = 0; i < spec.shape.length; ++i) {
+          const specDim = spec.shape[i];
+          const dim = xShape[i];
           if (specDim != null && dim != null) {
             if (specDim !== dim) {
               throw new ValueError(
@@ -843,10 +845,22 @@ export class Layer {
 
     // Ensure inputs are all the same type.
     const inputsList = generic_utils.toList(inputs);
-    const allAreSymbolic =
-        _.every(inputsList, (x) => x instanceof SymbolicTensor);
-    const noneAreSymbolic =
-        _.every(inputsList, (x) => !(x instanceof SymbolicTensor));
+
+    let allAreSymbolic = true;
+    for (const input of inputsList) {
+      if (!(input instanceof SymbolicTensor)) {
+        allAreSymbolic = false;
+        break;
+      }
+    }
+    let noneAreSymbolic = true;
+    for (const input of inputsList) {
+      if (input instanceof SymbolicTensor) {
+        noneAreSymbolic = false;
+        break;
+      }
+    }
+
     if (allAreSymbolic === noneAreSymbolic) {
       throw new ValueError(
           'Arguments to apply() must be all ' +
@@ -898,7 +912,7 @@ export class Layer {
         // TODO(michaelterry): This copying may not be necessary given our eager
         // backend.
         for (let x of outputList) {
-          if (_.contains(inputsList, x)) {
+          if (inputsList.indexOf(x) !== -1) {
             x = K.identity(x);
           }
           outputListCopy.push(x);
@@ -1004,8 +1018,11 @@ export class Layer {
     }
     const weightValueTuples: Array<[LayerVariable, Tensor]> = [];
     const paramValues = K.batchGetValue(params);
-    for (const [pv, p, w] of _.zip(paramValues, params, weights)) {
-      if (!_.isEqual(pv.shape, w.shape)) {
+    for (let i = 0; i < paramValues.length; ++i) {
+      const pv = paramValues[i];
+      const p = params[i];
+      const w = weights[i];
+      if (!util.arraysEqual(pv.shape, w.shape)) {
         throw new ValueError(
             `Layer weight shape ${pv.shape} ` +
             `not compatible with provided weight shape ${w.shape}`);
@@ -1103,10 +1120,12 @@ export class Layer {
     if (!this.supportsMasking) {
       if (mask != null) {
         if (Array.isArray(mask)) {
-          if (_.any(mask)) {
-            throw new TypeError(
-                `Layer ${this.name} does not support masking,` +
-                'but was passed an inputMask.');
+          for (const maskElement of mask) {
+            if (maskElement != null) {
+              throw new TypeError(
+                  `Layer ${this.name} does not support masking,` +
+                  'but was passed an inputMask.');
+            }
           }
         } else {
           throw new TypeError(
@@ -1558,7 +1577,7 @@ export class Container extends Layer {
     }
 
     // Check for redundancy in inputs.
-    if (_.uniq(this.inputs).length !== this.inputs.length) {
+    if (generic_utils.unique(this.inputs).length !== this.inputs.length) {
       throw new ValueError(
           'The list of inputs passed to the model is ' +
           'redundant. All inputs should only appear once. Found: ' +
@@ -1566,7 +1585,7 @@ export class Container extends Layer {
     }
 
     // Check for redundancy in outputs.
-    if (_.uniq(this.outputs).length !== this.outputs.length) {
+    if (generic_utils.unique(this.outputs).length !== this.outputs.length) {
       console.warn(
           'The list of outputs passed to the model is redundant. ' +
           'All outputs should only appear once. Found: ' +
@@ -1704,14 +1723,14 @@ export class Container extends Layer {
           const node = layer.inboundNodes[nodeIndex];
 
           // Prevent cycles.
-          if (_.contains(nodesInProgress, node)) {
+          if (nodesInProgress.indexOf(node) !== -1) {
             throw new RuntimeError(
                 `The tensor ${tensor.name} at layer "${layer.name}" ` +
                 'is part of a cycle.');
           }
 
           // Don't repeat work for shared subgraphs
-          if (_.contains(finishedNodes, node)) {
+          if (finishedNodes.indexOf(node) !== -1) {
             return;
           }
 
@@ -1720,10 +1739,10 @@ export class Container extends Layer {
 
           // Store the traversal order for layer sorting.
           if (!(layer.id in layerIndices)) {
-            layerIndices[layer.id] = _.keys(layerIndices).length;
+            layerIndices[layer.id] = generic_utils.keys(layerIndices).length;
           }
 
-          if (!_.contains(nodesInProgress, node)) {
+          if (nodesInProgress.indexOf(node) === -1) {
             nodesInProgress.push(node);
           }
 
@@ -1809,7 +1828,7 @@ export class Container extends Layer {
     }
 
     // Get sorted list of layer depths.
-    let depthKeys = _.keys(layersByDepth)
+    let depthKeys = generic_utils.keys(layersByDepth)
                         .map(x => parseInt(x, 10))
                         .sort(generic_utils.reverseNumberCompare);
 
@@ -1837,7 +1856,7 @@ export class Container extends Layer {
     this.layersByDepth = layersByDepth;
 
     // Get sorted list of node depths;
-    depthKeys = _.keys(nodesByDepth)
+    depthKeys = generic_utils.keys(nodesByDepth)
                     .map(x => parseInt(x, 10))
                     .sort(generic_utils.reverseNumberCompare);
 
@@ -1853,7 +1872,7 @@ export class Container extends Layer {
         const layer = node.outboundLayer;
         if (layer != null) {
           for (const x of node.inputTensors) {
-            if (!_.contains(computableTensors, x)) {
+            if (computableTensors.indexOf(x) === -1) {
               throw new RuntimeError(
                   `Graph disconnected: cannot obtain value for tensor ${x}` +
                   ` at layer "${layer.name}". ` +
@@ -2104,7 +2123,7 @@ export class Container extends Layer {
         for (const node of nodes) {
           // This is always a single layer, never a list.
           const layer = node.outboundLayer;
-          if (_.contains(this.inputLayers.map(x => x.id), layer.id)) {
+          if (this.inputLayers.map(x => x.id).indexOf(layer.id) !== -1) {
             // We've already covered the input layers a few lines above.
             continue;
           }
@@ -2175,7 +2194,10 @@ export class Container extends Layer {
     // TODO: raise exception when a `.computeMask()` call
     // does not return a list the same size as `call`
     const tensorMap: {[tensorID: string]: [Tensor, Tensor]} = {};
-    for (const [x, y, mask] of _.zip(this.inputs, inputs, masks)) {
+    for (let i = 0; i < this.inputs.length; ++i) {
+      const x = this.inputs[i];
+      const y = inputs[i];
+      const mask = masks[i];
       tensorMap[x.id] = [y, mask];
     }
 
@@ -2242,8 +2264,10 @@ export class Container extends Layer {
           // TODO(michaelterry): Add model updates and losses
 
           // Update tensor map.
-          for (const [x, y, mask] of _.zip(
-                   referenceOutputTensors, outputTensors, outputMasks)) {
+          for (let i = 0; i < referenceOutputTensors.length; ++i) {
+            const x = referenceOutputTensors[i];
+            const y = outputTensors[i];
+            const mask = outputMasks[i];
             tensorMap[x.id] = [y, mask];
           }
         }
@@ -2512,7 +2536,7 @@ export class Container extends Layer {
       // Call layer on its inputs, thus creating the node
       // and building the layer if needed.
       // Note: This has Eager vs Graph Implications.
-      if (!_.isEmpty(inputTensors)) {
+      if (inputTensors.length === 0) {
         layer.apply(
             generic_utils.singletonOrArray(inputTensors),
             kwargs);  // was ** kwargs
@@ -2653,7 +2677,7 @@ export function getSourceInputs(
         const previousSources = getSourceInputs(x, layer, nodeIndex);
         // Avoid input redundancy.
         for (const x of previousSources) {
-          if (!_.contains(sourceTensors, x)) {
+          if (sourceTensors.indexOf(x) === -1) {
             sourceTensors.push(x);
           }
         }
@@ -2821,7 +2845,8 @@ export function loadWeightsFromJson(
       // Set values.
       for (let i = 0; i < weightValues.length; ++i) {
         if (skipMismatch) {
-          if (!_.isEqual(symbolicWeights[i].shape, weightValues[i].shape)) {
+          if (!util.arraysEqual(
+                  symbolicWeights[i].shape, weightValues[i].shape)) {
             console.warn(
                 `Skipping loading of weights for layer ${layer.name} due ` +
                 `to mismatch in shape (${symbolicWeights[i].shape} vs ` +
