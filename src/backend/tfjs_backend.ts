@@ -862,6 +862,26 @@ export function update(x: LayerVariable, xNew: Tensor): LayerVariable {
 }
 
 /**
+ * Compute the moving average of a variable.
+ *
+ * Arg:
+ *   x: The variable to be updated.
+ *   value: A tensor with the same dtype and shape as `x`.
+ *   momentum: The moving average momentum. Typical values are 0.95 and 0.99.
+ */
+export function movingAverageUpdate(
+    x: LayerVariable, value: Tensor, momentum: number): void {
+  util.assert(
+      x.dtype === value.dtype, 'Mismatch in dtypes of variable and value.');
+  util.assert(
+      util.arraysEqual(x.shape, value.shape),
+      'Mismatch in shapes of variable and value.');
+  x.write(x.read()
+              .mul(getScalar(momentum))
+              .add(value.mul(getScalar(1 - momentum))));
+}
+
+/**
  * Update the value of a Variable by adding an increment.
  * @param x The Variable to be updated.
  * @param increment The incrment to add to `x`.
