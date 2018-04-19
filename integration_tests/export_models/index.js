@@ -34,6 +34,7 @@ async function runExportModelDemo(artifactsDir, modelName, config) {
       reader.onloadend = (event) => {
         console.log('model.json load end: ' + event.target.result);  // DEBUG
       };
+      console.log(uploadJSON.files[0].constructor.name);  // DEBUG
       reader.readAsText(uploadJSON.files[0]);
     }
     console.log(uploadWeights.files);
