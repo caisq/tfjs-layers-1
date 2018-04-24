@@ -2028,12 +2028,14 @@ export abstract class Container extends Layer {
    * To load a network from a JSON save file, use
    * models.modelFromJSON(jsonString);
    * @param extraJsonArgs unused in tfjs-layers, maintained for PyKeras
+   * @param returnString Whether the JSON will be stringified before being
+   *   returned. Default: `true`.
    * @returns a JSON string
    */
   // tslint:disable-next-line:no-any
-  toJSON(unused?: any): string {
-    const modelConfig = this.updatedConfig();
-    return JSON.stringify(convertTsToPythonic(modelConfig));
+  toJSON(unused?: any, returnString = true): string|JsonDict {
+    const modelConfig = convertTsToPythonic(this.updatedConfig());
+    return returnString ? JSON.stringify(modelConfig) : modelConfig as JsonDict;
   }
 
   /**

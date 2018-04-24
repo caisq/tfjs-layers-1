@@ -11,7 +11,7 @@
 /* Original source keras/models.py */
 
 // tslint:disable:max-line-length
-import {doc, encodeTensors, IOHandler, loadWeights, SaveConfig, SaveHandler, SaveResult, Scalar, Tensor, WeightsManifestConfig} from '@tensorflow/tfjs-core';
+import {doc, encodeTensors, IOHandler, loadWeights, SaveConfig, SaveResult, Scalar, Tensor, WeightsManifestConfig} from '@tensorflow/tfjs-core';
 
 import * as K from './backend/tfjs_backend';
 import {History} from './callbacks';
@@ -541,7 +541,7 @@ export class Sequential extends Model {
 
   // TODO(cais): Override get trainableWeights() here
 
-  protected getNamedWeights(): NamedTensorMap() {
+  protected getNamedWeights(): NamedTensorMap {
     const namedWeights: NamedTensorMap = {};
     const weights = this.weights;
     // const weightSpecs: Name[] = this.weights.map(weight => {
@@ -575,7 +575,11 @@ export class Sequential extends Model {
     const [weightData, weightSpecs] =
         await encodeTensors(this.getNamedWeights());
 
-    return handlerOrURL.save();
+    const modelConfig = this.toJSON(null, false);
+    // console.log(`modelConfig = ${JSON.stringify(modelConfig)}`);
+
+    return handlerOrURL.save(
+        {modelTopology: modelConfig, weightSpecs, weightData});
   }
 
   // tslint:disable-next-line:no-any
