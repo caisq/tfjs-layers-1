@@ -11,13 +11,13 @@
 /* Original source keras/models.py */
 
 // tslint:disable:max-line-length
-import {doc, loadWeights, Scalar, Tensor, WeightsManifestConfig} from '@tensorflow/tfjs-core';
+import {doc, encodeTensors, IOHandler, loadWeights, SaveConfig, SaveHandler, SaveResult, Scalar, Tensor, WeightsManifestConfig} from '@tensorflow/tfjs-core';
 
 import * as K from './backend/tfjs_backend';
 import {History} from './callbacks';
 import {getSourceInputs, Input, Layer, Node} from './engine/topology';
 import {Model, ModelCompileConfig, ModelEvaluateConfig, ModelFitConfig, ModelPredictConfig} from './engine/training';
-import {RuntimeError, ValueError} from './errors';
+import {NotImplementedError, RuntimeError, ValueError} from './errors';
 import {deserialize} from './layers/serialization';
 import {NamedTensorMap, Serializable, Shape} from './types';
 import {ConfigDict, ConfigDictArray, Constructor, JsonDict, SymbolicTensor} from './types';
@@ -540,6 +540,43 @@ export class Sequential extends Model {
   }
 
   // TODO(cais): Override get trainableWeights() here
+
+  protected getNamedWeights(): NamedTensorMap() {
+    const namedWeights: NamedTensorMap = {};
+    const weights = this.weights;
+    // const weightSpecs: Name[] = this.weights.map(weight => {
+    //   name: weight.name,
+    //   shape: weight.shape,
+    //   dtype: weight.dtype,
+    // });
+    const weightValues = this.getWeights();
+    for (let i = 0; i < weights.length; ++i) {
+      namedWeights[weights[i].name] = weightValues[i];
+    }
+    return namedWeights;
+  }
+
+  async save(handlerOrURL: IOHandler|string, config?: SaveConfig):
+      Promise<SaveResult> {
+    if (typeof handlerOrURL === 'string') {
+      throw new NotImplementedError(
+          'String URLs support in Model.save() is not implemented yet.');
+    }
+    if (config != null) {
+      throw new NotImplementedError(
+          'Support for SaveConfig is not implemented in Model.save() yet.');
+    }
+    if (handlerOrURL.save == null) {
+      throw new ValueError(
+          'Model.save() cannot proceed because the IOHandler provided does ' +
+          'not have the `save` attribute defined.');
+    }
+
+    const [weightData, weightSpecs] =
+        await encodeTensors(this.getNamedWeights());
+
+    return handlerOrURL.save();
+  }
 
   // tslint:disable-next-line:no-any
   getConfig(): any {
