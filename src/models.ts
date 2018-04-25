@@ -541,16 +541,15 @@ export class Sequential extends Model {
 
   // TODO(cais): Override get trainableWeights() here
 
-  protected getNamedWeights(): NamedTensorMap {
+  protected getNamedWeights(config?: SaveConfig): NamedTensorMap {
     const namedWeights: NamedTensorMap = {};
     const weights = this.weights;
-    // const weightSpecs: Name[] = this.weights.map(weight => {
-    //   name: weight.name,
-    //   shape: weight.shape,
-    //   dtype: weight.dtype,
-    // });
     const weightValues = this.getWeights();
     for (let i = 0; i < weights.length; ++i) {
+      if (config != null && config.trainableOnly && !weights[i].trainable) {
+        // Optionally skip non-trainable weights.
+        continue;
+      }
       namedWeights[weights[i].name] = weightValues[i];
     }
     return namedWeights;

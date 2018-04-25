@@ -30,7 +30,7 @@ describeMathCPUAndGPU('Model.save', () => {
     constructor() {}
   }
 
-  it('Save succeeds', async done => {
+  it('Saving all weights succeeds', async done => {
     const model = new Sequential();
     model.add(new Dense({units: 3, inputShape: [5]}));
     const handler = new IOHandlerForTest();
@@ -46,7 +46,40 @@ describeMathCPUAndGPU('Model.save', () => {
           expect(handler.savedArtifacts.weightSpecs[0].shape).toEqual([5, 3]);
           expect(handler.savedArtifacts.weightSpecs[0].dtype)
               .toEqual('float32');
+          expect(handler.savedArtifacts.weightSpecs[1].name.indexOf('/bias'))
+              .toBeGreaterThan(0);
           expect(handler.savedArtifacts.weightSpecs[1].shape).toEqual([3]);
+          expect(handler.savedArtifacts.weightSpecs[1].dtype)
+              .toEqual('float32');
+          done();
+        })
+        .catch(err => {
+          console.error(err.stack);
+        });
+  });
+
+  it('Saving only trainable weights succeeds', async done => {
+    const model = new Sequential();
+    model.add(new Dense({units: 3, trainable: false}));
+    model.add(new Dense({units: 2}));
+    const handler = new IOHandlerForTest();
+
+    model.save(handler, {trainableOnly: true})
+        .then(saveResult => {
+          expect(saveResult.success).toEqual(true);
+          expect(handler.savedArtifacts.modelTopology)
+              .toEqual(model.toJSON(null, false));
+          // Verify that only the trainable weights (i.e., weights from the
+          // 2nd, trainable Dense layer) are saved.
+          expect(handler.savedArtifacts.weightSpecs.length).toEqual(2);
+          expect(handler.savedArtifacts.weightSpecs[0].name.indexOf('/kernel'))
+              .toBeGreaterThan(0);
+          expect(handler.savedArtifacts.weightSpecs[0].shape).toEqual([3, 2]);
+          expect(handler.savedArtifacts.weightSpecs[0].dtype)
+              .toEqual('float32');
+          expect(handler.savedArtifacts.weightSpecs[1].name.indexOf('/bias'))
+              .toBeGreaterThan(0);
+          expect(handler.savedArtifacts.weightSpecs[1].shape).toEqual([2]);
           expect(handler.savedArtifacts.weightSpecs[1].dtype)
               .toEqual('float32');
           done();
