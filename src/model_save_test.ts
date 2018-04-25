@@ -60,7 +60,7 @@ describeMathCPUAndGPU('Model.save', () => {
 
   it('Saving only trainable weights succeeds', async done => {
     const model = new Sequential();
-    model.add(new Dense({units: 3, trainable: false}));
+    model.add(new Dense({units: 3, inputShape: [5], trainable: false}));
     model.add(new Dense({units: 2}));
     const handler = new IOHandlerForTest();
 

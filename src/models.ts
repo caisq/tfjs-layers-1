@@ -543,8 +543,10 @@ export class Sequential extends Model {
 
   protected getNamedWeights(config?: SaveConfig): NamedTensorMap {
     const namedWeights: NamedTensorMap = {};
-    const weights = this.weights;
-    const weightValues = this.getWeights();
+
+    const trainableOnly = config != null && config.trainableOnly;
+    const weights = trainableOnly ? this.trainableWeights : this.weights;
+    const weightValues = this.getWeights(trainableOnly);
     for (let i = 0; i < weights.length; ++i) {
       if (config != null && config.trainableOnly && !weights[i].trainable) {
         // Optionally skip non-trainable weights.
@@ -561,20 +563,16 @@ export class Sequential extends Model {
       throw new NotImplementedError(
           'String URLs support in Model.save() is not implemented yet.');
     }
-    if (config != null) {
-      throw new NotImplementedError(
-          'Support for SaveConfig is not implemented in Model.save() yet.');
-    }
     if (handlerOrURL.save == null) {
       throw new ValueError(
           'Model.save() cannot proceed because the IOHandler provided does ' +
           'not have the `save` attribute defined.');
     }
 
-    const weightDataAndSpecs = await encodeWeights(this.getNamedWeights());
+    const weightDataAndSpecs =
+        await encodeWeights(this.getNamedWeights(config));
 
     const modelConfig = this.toJSON(null, false);
-    // console.log(`modelConfig = ${JSON.stringify(modelConfig)}`);
 
     return handlerOrURL.save({
       modelTopology: modelConfig,
