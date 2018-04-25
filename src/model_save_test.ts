@@ -26,25 +26,52 @@ describeMathCPUAndGPU('Model.save', () => {
     }
   }
 
-  it('Save', async done => {  // TODO(cais): Rename test title.
+  class EmptyIOHanlder implements IOHandler {
+    constructor() {}
+  }
+
+  it('Save succeeds', async done => {
     const model = new Sequential();
     model.add(new Dense({units: 3, inputShape: [5]}));
     const handler = new IOHandlerForTest();
-    console.log(handler);  // DEBUG
 
     model.save(handler)
         .then(saveResult => {
-          console.log(`saveResult = ${JSON.stringify(saveResult)}`);  // DEBUG
           expect(saveResult.success).toEqual(true);
-          console.log(
-              JSON.stringify(handler.savedArtifacts.modelTopology));  // DEBUG
-          console.log(
-              JSON.stringify(handler.savedArtifacts.weightSpecs));  // DEBUG
-          console.log(handler.savedArtifacts.weightData);           // DEBUG
+          expect(handler.savedArtifacts.modelTopology)
+              .toEqual(model.toJSON(null, false));
+          expect(handler.savedArtifacts.weightSpecs.length).toEqual(2);
+          expect(handler.savedArtifacts.weightSpecs[0].name.indexOf('/kernel'))
+              .toBeGreaterThan(0);
+          expect(handler.savedArtifacts.weightSpecs[0].shape).toEqual([5, 3]);
+          expect(handler.savedArtifacts.weightSpecs[0].dtype)
+              .toEqual('float32');
+          expect(handler.savedArtifacts.weightSpecs[1].shape).toEqual([3]);
+          expect(handler.savedArtifacts.weightSpecs[1].dtype)
+              .toEqual('float32');
           done();
         })
         .catch(err => {
           console.error(err.stack);
+        });
+  });
+
+  it('Saving to a handler without save method fails', async done => {
+    const model = new Sequential();
+    model.add(new Dense({units: 3, inputShape: [5]}));
+    const handler = new EmptyIOHanlder();
+    model.save(handler)
+        .then(saveResult => {
+          fail(
+              'Saving with an IOHandler without `save` succeeded ' +
+              'unexpectedly.');
+        })
+        .catch(err => {
+          expect(err.message)
+              .toEqual(
+                  'Model.save() cannot proceed because the IOHandler ' +
+                  'provided does not have the `save` attribute defined.');
+          done();
         });
   });
 });

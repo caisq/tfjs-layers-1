@@ -11,7 +11,7 @@
 /* Original source keras/models.py */
 
 // tslint:disable:max-line-length
-import {doc, encodeTensors, IOHandler, loadWeights, SaveConfig, SaveResult, Scalar, Tensor, WeightsManifestConfig} from '@tensorflow/tfjs-core';
+import {doc, encodeWeights, IOHandler, loadWeights, SaveConfig, SaveResult, Scalar, Tensor, WeightsManifestConfig} from '@tensorflow/tfjs-core';
 
 import * as K from './backend/tfjs_backend';
 import {History} from './callbacks';
@@ -572,14 +572,16 @@ export class Sequential extends Model {
           'not have the `save` attribute defined.');
     }
 
-    const [weightData, weightSpecs] =
-        await encodeTensors(this.getNamedWeights());
+    const weightDataAndSpecs = await encodeWeights(this.getNamedWeights());
 
     const modelConfig = this.toJSON(null, false);
     // console.log(`modelConfig = ${JSON.stringify(modelConfig)}`);
 
-    return handlerOrURL.save(
-        {modelTopology: modelConfig, weightSpecs, weightData});
+    return handlerOrURL.save({
+      modelTopology: modelConfig,
+      weightData: weightDataAndSpecs.data,
+      weightSpecs: weightDataAndSpecs.specs
+    });
   }
 
   // tslint:disable-next-line:no-any
