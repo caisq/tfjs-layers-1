@@ -9,7 +9,7 @@
  */
 
 // tslint:disable:max-line-length
-import {ones, Scalar, scalar, Tensor, WeightsManifestConfig, zeros} from '@tensorflow/tfjs-core';
+import {io, ones, Scalar, scalar, Tensor, zeros} from '@tensorflow/tfjs-core';
 
 import * as K from './backend/tfjs_backend';
 import * as tfl from './index';
@@ -145,7 +145,7 @@ describeMathCPU('loadModel', () => {
         // Use a randomly generated layer name to prevent interaction with
         // other unit tests that load the same sample JSON.
         const denseLayerName = 'dense_' + Math.floor(Math.random() * 1e9);
-        const weightsManifest: WeightsManifestConfig = [
+        const weightsManifest: io.WeightsManifestConfig = [
           {
             'paths': ['weight_0'],
             'weights': [{
@@ -193,7 +193,7 @@ describeMathCPU('loadModel', () => {
     // Use a randomly generated layer name to prevent interaction with other
     // unit tests that load the same sample JSON.
     const denseLayerName = 'dense_' + Math.floor(Math.random() * 1e9);
-    const weightsManifest: WeightsManifestConfig = [
+    const weightsManifest: io.WeightsManifestConfig = [
       {
         'paths': ['weight_0'],
         'weights': [{
@@ -219,7 +219,7 @@ describeMathCPU('loadModel', () => {
         './weight_1': ones([32], 'float32').dataSync() as Float32Array,
       });
       const denseLayerName = 'dense_uniqueify';
-      const weightsManifest: WeightsManifestConfig = [
+      const weightsManifest: io.WeightsManifestConfig = [
         {
           'paths': ['weight_0'],
           'weights': [{

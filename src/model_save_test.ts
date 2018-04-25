@@ -8,25 +8,25 @@
  * =============================================================================
  */
 
-import {IOHandler, ModelArtifacts, SaveResult} from '@tensorflow/tfjs-core';
+import {io} from '@tensorflow/tfjs-core';
 
 import {Dense} from './layers/core';
 import {Sequential} from './models';
 import {describeMathCPUAndGPU} from './utils/test_utils';
 
 describeMathCPUAndGPU('Model.save', () => {
-  class IOHandlerForTest implements IOHandler {
-    savedArtifacts: ModelArtifacts;
+  class IOHandlerForTest implements io.IOHandler {
+    savedArtifacts: io.ModelArtifacts;
 
     constructor() {}
 
-    async save(modelArtifacts: ModelArtifacts): Promise<SaveResult> {
+    async save(modelArtifacts: io.ModelArtifacts): Promise<io.SaveResult> {
       this.savedArtifacts = modelArtifacts;
       return {success: true};
     }
   }
 
-  class EmptyIOHanlder implements IOHandler {
+  class EmptyIOHanlder implements io.IOHandler {
     constructor() {}
   }
 

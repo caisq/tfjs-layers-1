@@ -11,7 +11,7 @@
 /* Original source keras/models.py */
 
 // tslint:disable:max-line-length
-import {doc, encodeWeights, IOHandler, loadWeights, SaveConfig, SaveResult, Scalar, Tensor, WeightsManifestConfig} from '@tensorflow/tfjs-core';
+import {doc, io, Scalar, Tensor} from '@tensorflow/tfjs-core';
 
 import * as K from './backend/tfjs_backend';
 import {History} from './callbacks';
@@ -54,7 +54,7 @@ export async function modelFromJSON(
     // file that was loaded.  These should match the keys of the weight
     // manifest.
     const weightValues =
-        await loadWeights(
+        await io.loadWeights(
             modelAndWeightsConfig.weightsManifest,
             modelAndWeightsConfig.pathPrefix,
             model.weights.map(weight => weight.originalName)) as NamedTensorMap;
@@ -91,7 +91,7 @@ export interface ModelAndWeightsConfig {
   /**
    * A weights manifest in TensorFlow.js format.
    */
-  weightsManifest?: WeightsManifestConfig;
+  weightsManifest?: io.WeightsManifestConfig;
 
   /**
    * Path to prepend to the paths in `weightManifest` before fetching.
@@ -541,7 +541,7 @@ export class Sequential extends Model {
 
   // TODO(cais): Override get trainableWeights() here
 
-  protected getNamedWeights(config?: SaveConfig): NamedTensorMap {
+  protected getNamedWeights(config?: io.SaveConfig): NamedTensorMap {
     const namedWeights: NamedTensorMap = {};
 
     const trainableOnly = config != null && config.trainableOnly;
@@ -557,8 +557,8 @@ export class Sequential extends Model {
     return namedWeights;
   }
 
-  async save(handlerOrURL: IOHandler|string, config?: SaveConfig):
-      Promise<SaveResult> {
+  async save(handlerOrURL: io.IOHandler|string, config?: io.SaveConfig):
+      Promise<io.SaveResult> {
     if (typeof handlerOrURL === 'string') {
       throw new NotImplementedError(
           'String URLs support in Model.save() is not implemented yet.');
@@ -570,7 +570,7 @@ export class Sequential extends Model {
     }
 
     const weightDataAndSpecs =
-        await encodeWeights(this.getNamedWeights(config));
+        await io.encodeWeights(this.getNamedWeights(config));
 
     const modelConfig = this.toJSON(null, false);
 
