@@ -19,8 +19,12 @@ async function runExportModelDemo(artifactsDir, modelName, config) {
   console.log(tfl);  // DEBUG
   const model =
       tfl.sequential({
-          layers: [tfl.layers.dense({units: 1, inputShape: [200]})]});
+          layers: [tfl.layers.dense({units: 4000, inputShape: [4000]})]});
+  // const model =
+  //     tfl.sequential({
+  //         layers: [tfl.layers.dense({units: 1, inputShape: [4000]})]});
   console.log(model);  // DEBUG
+  console.log('Calling model.save');  // DEBUG
   const saveResult = await model.save(tfc.io.browserLocalStorage('myModel'));
   console.log('saveResult:', JSON.stringify(saveResult));  // DEBUG
 
