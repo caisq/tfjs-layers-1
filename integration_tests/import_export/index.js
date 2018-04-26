@@ -13,19 +13,16 @@ import * as tfl from '@tensorflow/tfjs-layers';
 
 async function runExportModelDemo(artifactsDir, modelName, config) {
   console.log(tfc);  // DEBUG
-  console.log(tfc.decodeWeights);  // DEBUG
-  console.log(tfc.encodeWeights);  // DEBUG
+  console.log(tfc.io);  // DEBUG
+  // console.log(tfc.io.decodeWeights);  // DEBUG
+  // console.log(tfc.io.encodeWeights);  // DEBUG
   console.log(tfl);  // DEBUG
   const model =
       tfl.sequential({
           layers: [tfl.layers.dense({units: 1, inputShape: [200]})]});
-  // model.save([
-  //   tf.savers.toLocalStorage('myModel'),
-  //   tf.savers.toDownloadAnchors(
-  //       document.getElementById('download-json'),
-  //       document.getElementById('download-weights'), 'model1.json',
-  //       'weights1.bin')
-  // ]);
+  console.log(model);  // DEBUG
+  const saveResult = await model.save(tfc.io.browserLocalStorage('myModel'));
+  console.log('saveResult:', JSON.stringify(saveResult));  // DEBUG
 
   // const uploadJSON = document.getElementById('upload-json');
   // const uploadWeights = document.getElementById('upload-weights');
