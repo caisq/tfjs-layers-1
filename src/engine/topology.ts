@@ -2758,10 +2758,11 @@ export function loadWeightsFromNamedTensorMap(
   let totalWeightsCount = 0;
   for (const layer of layers) {
     for (const weight of layer.weights) {
-      if (nameToWeight[weight.name] != null) {
-        throw new ValueError(`Duplicate weight name: ${weight.name}`);
+      console.log(`weight.name = ${weight.name}; weight.originalName = ${weight.originalName}`);  // DEBUG
+      if (nameToWeight[weight.originalName] != null) {
+        throw new ValueError(`Duplicate weight name: ${weight.originalName}`);
       }
-      nameToWeight[weight.name] = weight;
+      nameToWeight[weight.originalName] = weight;
       totalWeightsCount++;
     }
   }

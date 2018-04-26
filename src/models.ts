@@ -101,6 +101,35 @@ export interface ModelAndWeightsConfig {
   pathPrefix?: string;
 }
 
+export async function loadModelInternal(pathOrIOHandler: string|
+                                        io.IOHandler): Promise<Model> {
+  return (typeof pathOrIOHandler === 'string') ?
+      loadModelFromPath(pathOrIOHandler as string) :
+      loadModelFromIOHandler(pathOrIOHandler as io.IOHandler);
+}
+
+export async function loadModelFromIOHandler(
+    handler: io.IOHandler, customObjects?: ConfigDict): Promise<Model> {
+  if (handler.load == null) {
+    throw new ValueError(
+        'Cannot proceed with model loading because the IOHandler provided ' +
+        'does not have the `load` method implemented.');
+  }
+  const artifacts = await handler.load();
+  console.log(`artifacts.modelTopology = ${
+      JSON.stringify(artifacts.modelTopology)}`);  // DEBUG
+  console.log(`artifacts.weightSpecs = ${
+      JSON.stringify(artifacts.weightSpecs)}`);  // DEBUG
+  const model = deserialize(
+                    convertPythonicToTs(
+                        artifacts.modelTopology as ConfigDict) as ConfigDict,
+                    customObjects) as Model;
+  model.loadWeights(
+      io.decodeWeights(artifacts.weightData, artifacts.weightSpecs), false,
+      true);
+  return model;
+}
+
 /**
  * Load a model, including its topology and optionally weights.  See the
  * Tutorial named "How to import a Keras Model" for usage examples.
@@ -124,7 +153,7 @@ export interface ModelAndWeightsConfig {
  * @returns A `Promise` of `Model`, with the topology and weights loaded.
  */
 // TODO(cais): Add link to the core's documentation of `WeightManifestConfig`.
-export async function loadModelInternal(modelConfigPath: string):
+export async function loadModelFromPath(modelConfigPath: string):
     Promise<Model> {
   // TODO(soergel): accept a Request object too, not just a url string.
   const modelConfigRequest = await fetch(modelConfigPath);
@@ -552,7 +581,7 @@ export class Sequential extends Model {
         // Optionally skip non-trainable weights.
         continue;
       }
-      namedWeights[weights[i].name] = weightValues[i];
+      namedWeights[weights[i].originalName] = weightValues[i];
     }
     return namedWeights;
   }

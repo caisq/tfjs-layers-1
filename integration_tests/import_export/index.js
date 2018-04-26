@@ -14,30 +14,31 @@ import * as tfl from '@tensorflow/tfjs-layers';
 async function runExportModelDemo(artifactsDir, modelName, config) {
   console.log(tfc);  // DEBUG
   console.log(tfc.io);  // DEBUG
-  // console.log(tfc.io.decodeWeights);  // DEBUG
-  // console.log(tfc.io.encodeWeights);  // DEBUG
   console.log(tfl);  // DEBUG
 
   async function saveModelToLocalStorage() {
     const model =
         tfl.sequential({
-            layers: [tfl.layers.dense({units: 1, inputShape: [4000]})]});
-    // const model =
-    //     tfl.sequential({
-    //         layers: [tfl.layers.dense({units: 1, inputShape: [4000]})]});
+            layers: [tfl.layers.dense({units: 1, inputShape: [100]})]});
     console.log(model);  // DEBUG
+    model.getWeights()[0].print();  // DEBUG
     console.log('Calling model.save');  // DEBUG
     const saveResult = await model.save(tfc.io.browserLocalStorage('myModel'));
     console.log('saveResult:', saveResult);  // DEBUG
   }
-
   const localStorageSaveButton =
     document.getElementById('save-to-local-storage');
   localStorageSaveButton.addEventListener('click', saveModelToLocalStorage);
 
+  async function loadModelFromLocalStorage() {
+    const model =
+        await tfl.loadModel(tfc.io.browserLocalStorage('myModel'));
+    console.log('Loaded model:', model);  // DEBUG
+    model.getWeights()[0].print();  // DEBUG
+  }
   const localStorageLoadButton =
     document.getElementById('load-from-local-storage');
-  // localStorageLoadButton.
+  localStorageLoadButton.addEventListener('click', loadModelFromLocalStorage);
 
   // const uploadJSON = document.getElementById('upload-json');
   // const uploadWeights = document.getElementById('upload-weights');

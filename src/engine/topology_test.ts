@@ -1650,6 +1650,7 @@ describeMathCPUAndGPU('loadWeightsFromNamedTensorMap', () => {
   const inputTensor =
       tfl.layers.input({shape: [3], name: 'inputLayer', dtype: DType.float32});
 
+  // TODO(cais): Fix tests. DO NOT SUBMIT.
   it('One layer', () => {
     const denseLayer =
         tfl.layers.dense({units: 2, useBias: true, name: 'dense_layer'});
