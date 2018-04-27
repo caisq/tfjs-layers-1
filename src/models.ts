@@ -62,7 +62,8 @@ export async function modelFromJSON(
     // Map the weights to the unique tensor names generated during model loading
     const uniqueWeightValues: NamedTensorMap = {};
     for (const weight of model.weights) {
-      uniqueWeightValues[weight.name] = weightValues[weight.originalName];
+      uniqueWeightValues[weight.originalName] =
+          weightValues[weight.originalName];
     }
 
     const skipMismatches: boolean = null;
