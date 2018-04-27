@@ -22,7 +22,7 @@ describeMathCPUAndGPU('Model.save', () => {
 
     async save(modelArtifacts: io.ModelArtifacts): Promise<io.SaveResult> {
       this.savedArtifacts = modelArtifacts;
-      return {success: true};
+      return {modelArtifactsInfo: null};
     }
   }
 
@@ -37,7 +37,6 @@ describeMathCPUAndGPU('Model.save', () => {
 
     model.save(handler)
         .then(saveResult => {
-          expect(saveResult.success).toEqual(true);
           expect(handler.savedArtifacts.modelTopology)
               .toEqual(model.toJSON(null, false));
           expect(handler.savedArtifacts.weightSpecs.length).toEqual(2);
@@ -66,7 +65,6 @@ describeMathCPUAndGPU('Model.save', () => {
 
     model.save(handler, {trainableOnly: true})
         .then(saveResult => {
-          expect(saveResult.success).toEqual(true);
           expect(handler.savedArtifacts.modelTopology)
               .toEqual(model.toJSON(null, false));
           // Verify that only the trainable weights (i.e., weights from the
