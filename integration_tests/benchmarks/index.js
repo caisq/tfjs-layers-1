@@ -29,6 +29,7 @@ async function runBenchmark(artifactsDir, modelName, config) {
 
   const batchSize = benchmarkData.batch_size;
   const xs = tfc.randomUniform([batchSize].concat(benchmarkData.input_shape));
+  console.log('xs type:', typeof xs);  // DEBUG
   const ys = tfc.randomUniform([batchSize].concat(benchmarkData.target_shape));
   model.compile({
     optimizer: benchmarkData.optimizer,
@@ -40,18 +41,18 @@ async function runBenchmark(artifactsDir, modelName, config) {
   const PREDICT_RUNS = config.PREDICT_RUNS;
 
   // Perform fit() burn-in.
-  await model.fit(
-      xs, ys, {batchSize: benchmarkData.batch_size, epochs: FIT_BURNIN_EPOCHS});
+  // await model.fit(
+  //     xs, ys, {batchSize: benchmarkData.batch_size, epochs: FIT_BURNIN_EPOCHS});
   model.trainableWeights[0].read().dataSync();
 
   const trainBeginMs = performance.now();
-  await model.fit(xs, ys, {
-    batchSize: benchmarkData.batch_size,
-    epochs: benchmarkData.train_epochs
-  });
+  // await model.fit(xs, ys, {
+  //   batchSize: benchmarkData.batch_size,
+  //   epochs: benchmarkData.train_epochs
+  // });
   // After the fit() call, call dataSync() to let the scheduled GPU
   // operations to complete before proceeding.
-  model.trainableWeights[0].read().dataSync();
+  // model.trainableWeights[0].read().dataSync();
   const trainEndMs = performance.now();
   const trainTimeMs = (trainEndMs - trainBeginMs) / benchmarkData.train_epochs;
 
@@ -72,7 +73,7 @@ async function runBenchmark(artifactsDir, modelName, config) {
     }
     // After all the model.predict() calls, invoke dataSync() once to let the
     // scheduled GPU operations complete before proceeding.
-    output.dataSync();
+    // output.dataSync();
     const predictEndMs = performance.now();
     const predictTimeMs = (predictEndMs - predictBeginMs) / PREDICT_RUNS;
     return {
