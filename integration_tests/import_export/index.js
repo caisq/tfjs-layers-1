@@ -21,9 +21,16 @@ async function runExportModelDemo(artifactsDir, modelName, config) {
         tfl.sequential({
             layers: [tfl.layers.dense({units: 1, inputShape: [100]})]});
     console.log(model);  // DEBUG
+    model.compile({loss: 'meanSquaredError', optimizer: 'sgd'});  // DEBUG
+    await model.fit(tfc.ones([1, 100]), tfc.ones([1, 1]));  // DEBUG
     model.getWeights()[0].print();  // DEBUG
     console.log('Calling model.save');  // DEBUG
     const saveResult = await model.save(tfc.io.browserLocalStorage('myModel'));
+    console.log('Prediction from saved model:');  // DEBUG
+    tfc.tidy(() => {
+      model.predict(tfc.ones([1, 100])).print();  // DEBUG
+      console.log('Done saved model');  // DEBUG
+    });
     console.log('saveResult:', saveResult);  // DEBUG
   }
   const localStorageSaveButton =
@@ -31,14 +38,37 @@ async function runExportModelDemo(artifactsDir, modelName, config) {
   localStorageSaveButton.addEventListener('click', saveModelToLocalStorage);
 
   async function loadModelFromLocalStorage() {
+    console.log('Loading model...');  // DEBUG
     const model =
         await tfl.loadModel(tfc.io.browserLocalStorage('myModel'));
     console.log('Loaded model:', model);  // DEBUG
     model.getWeights()[0].print();  // DEBUG
+    console.log('Prediction from loaded model:');  // DEBUG
+    tfc.tidy(() => {
+      model.predict(tfc.ones([1, 100])).print();  // DEBUG
+    });
   }
   const localStorageLoadButton =
     document.getElementById('load-from-local-storage');
   localStorageLoadButton.addEventListener('click', loadModelFromLocalStorage);
+
+  const filePrefixInput = document.getElementById('download-file-prefix');
+  async function saveModelToDownloads() {
+    const model =
+        tfl.sequential({
+            layers: [tfl.layers.dense({units: 1, inputShape: [100]})]});
+    console.log(model);  // DEBUG
+    model.compile({loss: 'meanSquaredError', optimizer: 'sgd'});  // DEBUG
+    await model.fit(tfc.ones([1, 100]), tfc.ones([1, 1]));  // DEBUG
+    model.getWeights()[0].print();  // DEBUG
+    console.log('Calling model.save with triggerDownloads().');  // DEBUG
+    const saveResult = await model.save(
+        tfc.io.triggerDownloads(filePrefixInput.value));
+    console.log('Prediction from saved model:');  // DEBUG
+    console.log('saveResult:', saveResult);  // DEBUG
+  }
+  const downloadModelButton = document.getElementById('download-model');
+  downloadModelButton.addEventListener('click', saveModelToDownloads);
 
   // const uploadJSON = document.getElementById('upload-json');
   // const uploadWeights = document.getElementById('upload-weights');
