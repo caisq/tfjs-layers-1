@@ -62,6 +62,10 @@ async function runExportModelDemo(artifactsDir, modelName, config) {
     await model.fit(tfc.ones([1, 100]), tfc.ones([1, 1]));  // DEBUG
     model.getWeights()[0].print();  // DEBUG
     console.log('Calling model.save with triggerDownloads().');  // DEBUG
+    console.log('Prediction from downloaded model:');  // DEBUG
+    tfc.tidy(() => {
+      model.predict(tfc.ones([1, 100])).print();  // DEBUG
+    });
     const saveResult = await model.save(
         tfc.io.triggerDownloads(filePrefixInput.value));
     console.log('Prediction from saved model:');  // DEBUG
@@ -76,8 +80,17 @@ async function runExportModelDemo(artifactsDir, modelName, config) {
     if (uploadJSONInput.files.length !== 1) {
       throw new Error('Select exactly one model JSON file first.');
     }
-    const model = tfl.loadModel(tfc.io.files([uploadJSONInput.files[0]]));
-    console.log('model:', model);  // DEBUG
+    if (uploadWeightsInput.files.length !== 1) {
+      throw new Error('Select exactly one binary weights file first.');
+    }
+    const model = await tfl.loadModel(
+        tfc.io.files([uploadJSONInput.files[0], uploadWeightsInput.files[0]]));
+    console.log('Loaded model from file:', model);  // DEBUG
+    console.log(
+        'Prediction from model loaded from user-selected files:');  // DEBUG
+    tfc.tidy(() => {
+      model.predict(tfc.ones([1, 100])).print();  // DEBUG
+    });
   }
   const uploadModelButton = document.getElementById('upload-model');
   uploadModelButton.addEventListener('click', loadModelFromUserSelectedFiles);
