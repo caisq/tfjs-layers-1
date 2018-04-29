@@ -70,6 +70,18 @@ async function runExportModelDemo(artifactsDir, modelName, config) {
   const downloadModelButton = document.getElementById('download-model');
   downloadModelButton.addEventListener('click', saveModelToDownloads);
 
+  const uploadJSONInput = document.getElementById('upload-json');
+  const uploadWeightsInput = document.getElementById('upload-weights');
+  async function loadModelFromUserSelectedFiles() {
+    if (uploadJSONInput.files.length !== 1) {
+      throw new Error('Select exactly one model JSON file first.');
+    }
+    const model = tfl.loadModel(tfc.io.files([uploadJSONInput.files[0]]));
+    console.log('model:', model);  // DEBUG
+  }
+  const uploadModelButton = document.getElementById('upload-model');
+  uploadModelButton.addEventListener('click', loadModelFromUserSelectedFiles);
+
   // const uploadJSON = document.getElementById('upload-json');
   // const uploadWeights = document.getElementById('upload-weights');
   // const uploadModelButton = document.getElementById('upload-model');
