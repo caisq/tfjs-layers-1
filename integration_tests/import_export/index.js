@@ -16,6 +16,7 @@ async function runExportModelDemo(artifactsDir, modelName, config) {
   console.log(tfc.io);  // DEBUG
   console.log(tfl);  // DEBUG
 
+  // Local storage.
   async function saveModelToLocalStorage() {
     const model =
         tfl.sequential({
@@ -52,6 +53,28 @@ async function runExportModelDemo(artifactsDir, modelName, config) {
     document.getElementById('load-from-local-storage');
   localStorageLoadButton.addEventListener('click', loadModelFromLocalStorage);
 
+  // IndexedDB.
+  async function saveModelToIndexedDB() {
+    const model =
+        tfl.sequential({
+            layers: [tfl.layers.dense({units: 1, inputShape: [100]})]});
+    console.log(model);  // DEBUG
+    model.compile({loss: 'meanSquaredError', optimizer: 'sgd'});  // DEBUG
+    await model.fit(tfc.ones([1, 100]), tfc.ones([1, 1]));  // DEBUG
+    model.getWeights()[0].print();  // DEBUG
+    console.log('Calling model.save');  // DEBUG
+    const saveResult = await model.save(tfc.io.browserIndexedDB('myModel'));
+    console.log('Prediction from saved model:');  // DEBUG
+    tfc.tidy(() => {
+      model.predict(tfc.ones([1, 100])).print();  // DEBUG
+      console.log('Done saved model');  // DEBUG
+    });
+    console.log('saveResult:', saveResult);  // DEBUG
+  }
+  const indexedDBSaveButton = document.getElementById('save-to-indexed-db');
+  indexedDBSaveButton.addEventListener('click', saveModelToIndexedDB);
+
+  // File downloading and uploading.
   const filePrefixInput = document.getElementById('download-file-prefix');
   async function saveModelToDownloads() {
     const model =
