@@ -137,10 +137,34 @@ async function runExportModelDemo(artifactsDir, modelName, config) {
   const uploadModelButton = document.getElementById('upload-model');
   uploadModelButton.addEventListener('click', loadModelFromUserSelectedFiles);
 
+  // HTTP requests.
+  const modelServerURLInput = document.getElementById('model-server-url');
+  async function saveModelViaHTTP() {
+    const model =
+        tfl.sequential({
+            layers: [tfl.layers.dense({units: 1, inputShape: [100]})]});
+    console.log(model);  // DEBUG
+    model.compile({loss: 'meanSquaredError', optimizer: 'sgd'});  // DEBUG
+    await model.fit(tfc.ones([1, 100]), tfc.ones([1, 1]));  // DEBUG
+    model.getWeights()[0].print();  // DEBUG
+    console.log('Calling model.save');  // DEBUG
+    const modelServerURL = modelServerURLInput.value;
+    console.log('Saving model: ' + modelName + ' to ' + modelServerURL);
+    const saveResult = await model.save(tfc.io.httpRequest(modelServerURL));
+    console.log('Prediction from saved model:');  // DEBUG
+    tfc.tidy(() => {
+      model.predict(tfc.ones([1, 100])).print();  // DEBUG
+      console.log('Done saved model');  // DEBUG
+    });
+    console.log('saveResult:', saveResult);  // DEBUG
+  }
+  const httpRequestSaveModel = document.getElementById('save-to-http-server');
+  httpRequestSaveModel.addEventListener('click', saveModelViaHTTP);
+
   // const uploadJSON = document.getElementById('upload-json');
   // const uploadWeights = document.getElementById('upload-weights');
   // const uploadModelButton = document.getElementById('upload-model');
-  // console.log('uploadModelButton: ', uploadModelButton);  // DEBUG
+  // console.log('uploadModelButton: ', uploadModelButton);  // D EBUG
   // uploadModelButton.addEventListener('click', () => {
   //   console.log(uploadJSON.files);
   //   if (uploadJSON.files.length === 1) {
