@@ -150,7 +150,8 @@ async function runExportModelDemo(artifactsDir, modelName, config) {
     console.log('Calling model.save');  // DEBUG
     const modelServerURL = modelServerURLInput.value;
     console.log('Saving model: ' + modelName + ' to ' + modelServerURL);
-    const saveResult = await model.save(tfc.io.httpRequest(modelServerURL));
+    const saveResult =
+        await model.save(tfc.io.browserHTTPRequest(modelServerURL));
     console.log('Prediction from saved model:');  // DEBUG
     tfc.tidy(() => {
       model.predict(tfc.ones([1, 100])).print();  // DEBUG
