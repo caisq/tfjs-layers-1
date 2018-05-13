@@ -26,7 +26,7 @@ async function runExportModelDemo(artifactsDir, modelName, config) {
     await model.fit(tfc.ones([1, 100]), tfc.ones([1, 1]));  // DEBUG
     model.getWeights()[0].print();  // DEBUG
     console.log('Calling model.save');  // DEBUG
-    const saveResult = await model.save(tfc.io.browserLocalStorage('myModel'));
+    const saveResult = await model.save('localstorage://myModel');
     console.log('Prediction from saved model:');  // DEBUG
     tfc.tidy(() => {
       model.predict(tfc.ones([1, 100])).print();  // DEBUG
@@ -40,8 +40,7 @@ async function runExportModelDemo(artifactsDir, modelName, config) {
 
   async function loadModelFromLocalStorage() {
     console.log('Loading model...');  // DEBUG
-    const model =
-        await tfl.loadModel(tfc.io.browserLocalStorage('myModel'));
+    const model = await tfl.loadModel('localstorage://myModel');
     console.log('Loaded model:', model);  // DEBUG
     model.getWeights()[0].print();  // DEBUG
     console.log('Prediction from loaded model:');  // DEBUG
@@ -67,7 +66,7 @@ async function runExportModelDemo(artifactsDir, modelName, config) {
     console.log('Calling model.save');  // DEBUG
     const modelName = modelNameInput.value;
     console.log('Saving model: ' + modelName);
-    const saveResult = await model.save(tfc.io.browserIndexedDB(modelName));
+    const saveResult = await model.save('indexeddb://' + modelName);
     console.log('Prediction from saved model:');  // DEBUG
     tfc.tidy(() => {
       model.predict(tfc.ones([1, 100])).print();  // DEBUG
@@ -81,7 +80,7 @@ async function runExportModelDemo(artifactsDir, modelName, config) {
   async function loadModelFromIndexedDB() {
     const modelName = modelNameInput.value;
     console.log('Loading model from IndexedDB: ' + modelName);  // DEBUG
-    const model = await tfl.loadModel(tfc.io.browserIndexedDB(modelName));
+    const model = await tfl.loadModel('indexeddb://' + modelName);
     console.log('Loaded model:', model);  // DEBUG
     model.getWeights()[0].print();  // DEBUG
     console.log('Prediction from loaded model:');  // DEBUG
@@ -108,8 +107,7 @@ async function runExportModelDemo(artifactsDir, modelName, config) {
     tfc.tidy(() => {
       model.predict(tfc.ones([1, 100])).print();  // DEBUG
     });
-    const saveResult = await model.save(
-        tfc.io.browserDownloads(filePrefixInput.value));
+    const saveResult = await model.save('downloads://' + filePrefixInput.value);
     console.log('Prediction from saved model:');  // DEBUG
     console.log('saveResult:', saveResult);  // DEBUG
   }
@@ -150,8 +148,8 @@ async function runExportModelDemo(artifactsDir, modelName, config) {
     console.log('Calling model.save');  // DEBUG
     const modelServerURL = modelServerURLInput.value;
     console.log('Saving model: ' + modelName + ' to ' + modelServerURL);
-    const saveResult =
-        await model.save(tfc.io.browserHTTPRequest(modelServerURL));
+    const saveResult = await model.save(modelServerURL);
+    // const saveResult = await model.save(tfc.io.browserHTTPRequest(modelServerURL));
     console.log('Prediction from saved model:');  // DEBUG
     tfc.tidy(() => {
       model.predict(tfc.ones([1, 100])).print();  // DEBUG
@@ -161,33 +159,6 @@ async function runExportModelDemo(artifactsDir, modelName, config) {
   }
   const httpRequestSaveModel = document.getElementById('save-to-http-server');
   httpRequestSaveModel.addEventListener('click', saveModelViaHTTP);
-
-  // const uploadJSON = document.getElementById('upload-json');
-  // const uploadWeights = document.getElementById('upload-weights');
-  // const uploadModelButton = document.getElementById('upload-model');
-  // console.log('uploadModelButton: ', uploadModelButton);  // D EBUG
-  // uploadModelButton.addEventListener('click', () => {
-  //   console.log(uploadJSON.files);
-  //   if (uploadJSON.files.length === 1) {
-  //     const reader = new FileReader();  // TODO(cais): Use singleton?
-  //     reader.onloadend = (event) => {
-  //       console.log('model.json load end: ' + event.target.result);  // DEBUG
-  //     };
-  //     console.log(uploadJSON.files[0].constructor.name);  // DEBUG
-  //     reader.readAsText(uploadJSON.files[0]);
-  //   }
-  //   console.log(uploadWeights.files);
-  //   if (uploadWeights.files.length === 1) {
-  //     const reader = new FileReader();  // TODO(cais): Use singleton?
-  //     reader.onloadend = (event) => {
-  //       const buffer = event.target.result;
-  //       const array = new Float32Array(buffer);
-  //       console.log('Weights load end: length: ' + array.length);  // DEBUG
-  //       console.log('Weights load end: element 0: ' + array[0]);   // DEBUG
-  //     };
-  //     reader.readAsArrayBuffer(uploadWeights.files[0]);
-  //   }
-  // });
 }
 
 runExportModelDemo();
