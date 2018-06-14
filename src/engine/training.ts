@@ -13,6 +13,7 @@
 // tslint:disable:max-line-length
 import * as tfc from '@tensorflow/tfjs-core';
 import {doc, io, ModelPredictConfig, Optimizer, Scalar, serialization, Tensor, Tensor1D, tensor1d, util} from '@tensorflow/tfjs-core';
+
 import * as K from '../backend/tfjs_backend';
 import {BaseLogger, Callback, CallbackList, CustomCallbackConfig, disposeTensorsInLogs, History, standardizeCallbacks, UnresolvedLogs} from '../callbacks';
 import {NotImplementedError, RuntimeError, ValueError} from '../errors';
@@ -21,6 +22,7 @@ import * as Metrics from '../metrics';
 import * as optimizers from '../optimizers';
 import {LossOrMetricFn, NamedTensorMap, Shape} from '../types';
 import {count, singletonOrArray, unique} from '../utils/generic_utils';
+import {printSummary} from '../utils/layer_utils';
 import {range} from '../utils/math_utils';
 import {LayerVariable} from '../variables';
 
@@ -650,6 +652,20 @@ export class Model extends Container {
     super(config);
   }
 
+  summary(
+      lineLength?: number, positions: number[] = [0.33, 0.55, 0.67, 1],
+      // tslint:disable-next-line:no-any
+      printFn: (message?: any, ...optionalParams: any[]) => void = console.log):
+      string[] {
+    if (!this.built) {
+      throw new ValueError(
+          `This model has never been called, thus its weights have not been ` +
+          `created yet. So no summary can be displayed. Build the model ` +
+          `first (e.g., by calling it on some test data).`);
+    }
+    return printSummary(this, lineLength, positions, printFn);
+  }
+
   /**
    * Configures and prepares the model for training and evaluation.  Compiling
    * outfits the model with an optimizer, loss, and/or metrics.  Calling `fit`
@@ -869,7 +885,7 @@ export class Model extends Container {
    * Inconsistency will typically arise when one modifies `model.trainable`
    * without calling `model.compile()` again.
    */
-  private checkTrainableWeightsConsistency(): void {
+  checkTrainableWeightsConsistency(): void {
     if (this.collectedTrainableWeights == null) {
       return;
     }
@@ -1455,6 +1471,7 @@ export class Model extends Container {
       x: Tensor|Tensor[]|{[inputName: string]: Tensor},
       y: Tensor|Tensor[]|{[inputName: string]: Tensor},
       config: ModelFitConfig = {}): Promise<History> {
+    console.log('In Model.fit()');  // DEBUG
     const batchSize = config.batchSize == null ? 32 : config.batchSize;
 
     // Validate user data.
