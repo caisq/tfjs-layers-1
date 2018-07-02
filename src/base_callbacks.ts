@@ -358,42 +358,42 @@ export class CustomCallback extends BaseCallback {
     this.batchEnd = config.onBatchEnd;
   }
 
-  async onEpochBegin(epoch: number, logs?: UnresolvedLogs): Promise<void> {
+  async onEpochBegin(epoch: number, logs?: Logs): Promise<void> {
     if (this.epochBegin != null) {
       await resolveScalarsInLogs(logs);
       await this.epochBegin(epoch, logs as Logs);
     }
   }
 
-  async onEpochEnd(epoch: number, logs?: UnresolvedLogs): Promise<void> {
+  async onEpochEnd(epoch: number, logs?: Logs): Promise<void> {
     if (this.epochEnd != null) {
       await resolveScalarsInLogs(logs);
       await this.epochEnd(epoch, logs as Logs);
     }
   }
 
-  async onBatchBegin(batch: number, logs?: UnresolvedLogs): Promise<void> {
+  async onBatchBegin(batch: number, logs?: Logs): Promise<void> {
     if (this.batchBegin != null) {
       await resolveScalarsInLogs(logs);
       await this.batchBegin(batch, logs as Logs);
     }
   }
 
-  async onBatchEnd(batch: number, logs?: UnresolvedLogs): Promise<void> {
+  async onBatchEnd(batch: number, logs?: Logs): Promise<void> {
     if (this.batchEnd != null) {
       await resolveScalarsInLogs(logs);
       await this.batchEnd(batch, logs as Logs);
     }
   }
 
-  async onTrainBegin(logs?: UnresolvedLogs): Promise<void> {
+  async onTrainBegin(logs?: Logs): Promise<void> {
     if (this.trainBegin != null) {
       await resolveScalarsInLogs(logs);
       await this.trainBegin(logs as Logs);
     }
   }
 
-  async onTrainEnd(logs?: UnresolvedLogs): Promise<void> {
+  async onTrainEnd(logs?: Logs): Promise<void> {
     if (this.trainEnd != null) {
       await resolveScalarsInLogs(logs);
       await this.trainEnd(logs as Logs);
@@ -411,10 +411,12 @@ export function standardizeCallbacks(callbacks: BaseCallback|BaseCallback[]|
     return null;
   }
   if (callbacks instanceof BaseCallback) {
-    return [callbacks as BaseCallback];
+    return [new CustomCallback(callbacks)];
   }
   if (Array.isArray(callbacks) && callbacks[0] instanceof BaseCallback) {
-    return callbacks as BaseCallback[];
+    return (callbacks as BaseCallback[])
+        .map(callback => new CustomCallback(callback as BaseCallback));
+    // return callbacks as BaseCallback[];
   }
   // Convert custom callback configs to custom callback objects.
   const callbackConfigs =

@@ -1070,6 +1070,42 @@ describeMathCPUAndGPU('Model.fit', () => {
         });
   });
 
+  class CustomCallbackForTest extends tfl.CustomCallback {
+    epochNums: number[];
+    epochLosses: number[];
+
+    constructor() {
+      super({});
+      this.epochNums = [];
+      this.epochLosses = [];
+    }
+
+    async onEpochEnd(epoch: number, logs?: Logs) {
+      this.epochNums.push(epoch);
+      this.epochLosses.push(logs.loss);
+    }
+  }
+
+  it('Custom callback receives loss values as numbers', done => {
+    console.log('==== BEGIN ====');  // DEBUG
+    const sequentialModel = tfl.sequential();
+    sequentialModel.add(tfl.layers.dense(
+        {units: 1, kernelInitializer: 'ones', inputShape: [inputSize]}));
+    inputs = ones([numSamples, inputSize]);
+    targets = ones([numSamples, 1]);
+    sequentialModel.compile({optimizer: 'SGD', loss: 'meanSquaredError'});
+    // sequentialModel.stopTraining = false;
+    const customCallbackForTest = new CustomCallbackForTest();
+    sequentialModel
+        .fit(inputs, targets, {epochs: 10, callbacks: customCallbackForTest})
+        .then(history => {
+          console.log(customCallbackForTest.epochLosses);  // DEBUG
+          console.log('==== DONE ====');                   // DEBUG
+          done();
+        })
+        .catch(err => done.fail(err.stack));
+  });
+
   class StopAfterNEpochs extends tfl.Callback {
     private readonly epochsToTrain: number;
     constructor(epochsToTrain: number) {
