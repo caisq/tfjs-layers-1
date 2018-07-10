@@ -39,6 +39,12 @@ export interface InputLayerConfig {
 
   /** Name of the layer. */
   name?: string;
+
+  /**
+   * Optional existing `SymbolicTensor` to use as the layer input instead of
+   * creating a new `SymbolicTensor`.
+   */
+  inputTensor?: SymbolicTensor;
 }
 
 /**
@@ -84,6 +90,9 @@ export class InputLayer extends Layer {
           'batchInputShape argument to inputLayer, not both at the same time.');
     }
     let batchInputShape = config.batchInputShape;
+    if (config.inputTensor != null && batchInputShape == null) {
+      batchInputShape = config.inputTensor.shape;
+    }
     if (batchInputShape == null) {
       if (config.inputShape == null) {
         throw new ValueError(
@@ -101,16 +110,22 @@ export class InputLayer extends Layer {
       }
     }
 
-    const dtype = config.dtype || 'float32';
+    let dtype = config.dtype;
+    if (config.inputTensor != null) {
+      dtype = config.inputTensor.dtype;
+    }
+    dtype = dtype || 'float32';
 
     this.batchInputShape = batchInputShape;
     this.dtype = dtype;
     // TODO(michaelterry): Backport this to PyKeras?
     this.inputSpec = [{shape: batchInputShape}];
 
-    const inputTensor = new SymbolicTensor(
-        this.dtype, this.batchInputShape, this, [], {}, this.name);
-    inputTensor.nodeIndex = 0;
+
+    const inputTensor = config.inputTensor ||
+        new SymbolicTensor(this.dtype, this.batchInputShape, this, [], {},
+                           this.name);
+    inputTensor.nodeIndex = 0;  // TODO(cais): Confirm correctness.
     inputTensor.tensorIndex = 0;
 
     // Create an input node to add to this.outboundNode.
