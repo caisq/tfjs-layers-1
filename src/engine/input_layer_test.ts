@@ -19,7 +19,7 @@ import {LayerConfig,} from './topology';
 describeMathCPU('InputLayer', () => {
   it('when initialized to its defaults throws an exception', () => {
     expect(() => tfl.layers.inputLayer({}))
-        .toThrowError(/InputLayer should be passed either/);
+        .toThrowError(/InputLayer should be passed/);
   });
   describe('initialized with only an inputShape', () => {
     const inputShape = [1];
@@ -202,7 +202,7 @@ describe('Input()', () => {
   it('throws an exception if neither shape nor batchShape are specified',
      () => {
        expect(() => tfl.layers.input({}))
-           .toThrowError(/Please provide to Input either/);
+           .toThrowError(/Please provide to Input/);
      });
 
   const shape = [1];
@@ -235,4 +235,24 @@ describe('Input()', () => {
     expect(output instanceof tfl.SymbolicTensor).toBe(true);
     expect(output.name).toEqual('firstLayer/firstLayer');
   });
+
+  it('Existing SymbolicTensor', () => {
+    console.log('=== BEGIN ===');  // DEBUG
+    const model = tfl.sequential();
+    model.add(
+        tfl.layers.dense({units: 8, inputShape: [4], activation: 'relu'}));
+    model.add(tfl.layers.dense(
+        {units: 1, useBias: false, kernelInitializer: 'ones'}));
+    const existingSymbolicTensor = model.layers[1].input as tfl.SymbolicTensor;
+    // console.log('existingSymbolicTensor:', existingSymbolicTensor);  // DEBUG
+    const newInput = tfl.input({inputTensor: existingSymbolicTensor});
+    console.log(
+        'newInput.constructor.name:', newInput.constructor.name);  // DEBUG
+    const newModel = tfl.model({inputs: newInput, outputs: model.output});
+    newModel.summary();  // DEBUG
+    console.log(newInput);
+    console.log('=== END ===');  // DEBUG
+  });
+
+  // TODO(cais): Test direct use of InputLayer constructor.
 });

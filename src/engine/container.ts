@@ -23,7 +23,7 @@ import * as types_utils from '../utils/types_utils';
 import {batchSetValue, LayerVariable} from '../variables';
 import {version as layersVersion} from '../version';
 
-import {InputLayer} from './input_layer';
+// import {InputLayer} from './input_layer';
 import {Layer, Node, SymbolicTensor} from './topology';
 // tslint:enable:max-line-length
 
@@ -361,13 +361,14 @@ export abstract class Container extends Layer {
     for (let i = 0; i < this.inputLayers.length; i++) {
       const layer = this.inputLayers[i];
       // Check that layer is an InputLayer.
-      if (!(layer instanceof InputLayer)) {
-        throw new TypeError(
-            'Input layers to a Model must be InputLayer objects. ' +
-            `Received inputs: ${config.inputs}. ` +
-            `Input ${i} (0-based) originates ` +
-            `from layer type ${layer.getClassName()}.`);
-      }
+      // TODO(cais): Confirm correctness.
+      // if (!(layer instanceof InputLayer)) {
+      //   throw new TypeError(
+      //       'Input layers to a Model must be InputLayer objects. ' +
+      //       `Received inputs: ${config.inputs}. ` +
+      //       `Input ${i} (0-based) originates ` +
+      //       `from layer type ${layer.getClassName()}.`);
+      // }
       this.inputNames.push(layer.name);
       this.feedInputShapes.push(layer.batchInputShape);
 
