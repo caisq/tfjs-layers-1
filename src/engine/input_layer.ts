@@ -127,10 +127,15 @@ export class InputLayer extends Layer {
     // TODO(michaelterry): Backport this to PyKeras?
     this.inputSpec = [{shape: batchInputShape}];
 
+    let inputTensor: SymbolicTensor;
+    if (config.inputTensor == null) {
+      inputTensor = new SymbolicTensor(
+          this.dtype, this.batchInputShape, this, [], {}, this.name);
+    } else {
+      inputTensor = config.inputTensor;
+      inputTensor.sourceLayer = this;
+    }
 
-    const inputTensor = config.inputTensor ||
-        new SymbolicTensor(this.dtype, this.batchInputShape, this, [], {},
-                           this.name);
     inputTensor.nodeIndex = 0;  // TODO(cais): Confirm correctness.
     inputTensor.tensorIndex = 0;
 
@@ -209,7 +214,7 @@ export interface InputConfig {
    * Optional existing `SymbolicTensor` to use as the layer input instead of
    * creating a new `SymbolicTensor`.
    */
-  inputTensor?: SymbolicTensor;
+  tensor?: SymbolicTensor;
 }
 
 /**
@@ -235,10 +240,10 @@ export interface InputConfig {
  */
 export function Input(config: InputConfig): SymbolicTensor {
   if (config.batchShape == null && config.shape == null &&
-      config.inputTensor == null) {
+      config.tensor == null) {
     throw new Error(
         'Please provide to Input a `shape`,' +
-        'a `batchShape` or a `inputTensor` argument. Note that ' +
+        'a `batchShape` or a `tensor` field. Note that ' +
         '`shape` does not include the batch ' +
         'dimension.');
   }
@@ -263,7 +268,7 @@ export function Input(config: InputConfig): SymbolicTensor {
     name: config.name,
     dtype,
     sparse: config.sparse,
-    inputTensor: config.inputTensor
+    inputTensor: config.tensor
   });
 
   const outputs = inputLayer.inboundNodes[0].outputTensors;

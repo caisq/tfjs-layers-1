@@ -245,7 +245,7 @@ describe('Input()', () => {
         {units: 1, useBias: false, kernelInitializer: 'ones'}));
     const existingSymbolicTensor = model.layers[1].input as tfl.SymbolicTensor;
     // console.log('existingSymbolicTensor:', existingSymbolicTensor);  // DEBUG
-    const newInput = tfl.input({inputTensor: existingSymbolicTensor});
+    const newInput = tfl.input({tensor: existingSymbolicTensor});
     console.log(
         'newInput.constructor.name:', newInput.constructor.name);  // DEBUG
     const newModel = tfl.model({inputs: newInput, outputs: model.output});

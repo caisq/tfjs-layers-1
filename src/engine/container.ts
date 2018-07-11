@@ -23,7 +23,7 @@ import * as types_utils from '../utils/types_utils';
 import {batchSetValue, LayerVariable} from '../variables';
 import {version as layersVersion} from '../version';
 
-// import {InputLayer} from './input_layer';
+import {InputLayer} from './input_layer';
 import {Layer, Node, SymbolicTensor} from './topology';
 // tslint:enable:max-line-length
 
@@ -361,14 +361,14 @@ export abstract class Container extends Layer {
     for (let i = 0; i < this.inputLayers.length; i++) {
       const layer = this.inputLayers[i];
       // Check that layer is an InputLayer.
-      // TODO(cais): Confirm correctness.
-      // if (!(layer instanceof InputLayer)) {
-      //   throw new TypeError(
-      //       'Input layers to a Model must be InputLayer objects. ' +
-      //       `Received inputs: ${config.inputs}. ` +
-      //       `Input ${i} (0-based) originates ` +
-      //       `from layer type ${layer.getClassName()}.`);
-      // }
+      // TODO(cais): Confirm correctness. DO NOT SUBMIT.
+      if (!(layer instanceof InputLayer)) {
+        throw new TypeError(
+            'Input layers to a Model must be InputLayer objects. ' +
+            `Received inputs: ${config.inputs}. ` +
+            `Input ${i} (0-based) originates ` +
+            `from layer type ${layer.getClassName()}.`);
+      }
       this.inputNames.push(layer.name);
       this.feedInputShapes.push(layer.batchInputShape);
 
@@ -577,10 +577,10 @@ export abstract class Container extends Layer {
           for (const x of node.inputTensors) {
             if (computableTensors.indexOf(x) === -1) {
               throw new RuntimeError(
-                  `Graph disconnected: cannot obtain value for tensor ${x}` +
-                  ` at layer "${layer.name}". ` +
+                  `Graph disconnected: cannot obtain value for tensor ` +
+                  `"${x.name}" at layer "${layer.name}". ` +
                   'The following previous layers were accessed without ' +
-                  `issue: ${layersWithCompleteInput}`);
+                  `issue: ${JSON.stringify(layersWithCompleteInput)}`);
             }
           }
           for (const x of node.outputTensors) {
