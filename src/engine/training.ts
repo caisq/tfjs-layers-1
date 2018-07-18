@@ -35,6 +35,8 @@ import {SymbolicTensor} from './topology';
 
 // tslint:enable:max-line-length
 
+console.log('DEV');  // DEBUG DO NOT SUBMIT.
+
 /**
  * Helper function for polymorphic input data: 1. singleton Tensor.
  */
@@ -577,6 +579,20 @@ export interface ModelFitConfig {
    * (batches of samples) to validate before stopping.
    */
   validationSteps?: number;
+
+  /**
+   * Yield the main thread to other tasks every _ milliseconds or every _
+   * training events.
+   *
+   * - The value can be a number, in which case its semantics is the number of
+   *   milliseconds between successive yieldings.
+   * - The value can also be a string from the closed set of 'batch', 'epoch'
+   *   and 'never'.
+   *   - 'batch': yield every batch.
+   *   - 'epoch': yield every epoch.
+   *   - 'never': never yield.
+   */
+  yieldEvery?: number|'batch'|'epoch'|'never';
 }
 
 /**
@@ -1315,8 +1331,8 @@ export class Model extends Container implements tfc.InferenceModel {
       batchSize?: number, epochs?: number, verbose?: number,
       callbacks?: BaseCallback[], valF?: (data: Tensor[]) => Scalar[],
       valIns?: Tensor[], shuffle?: boolean|string, callbackMetrics?: string[],
-      initialEpoch?: number, stepsPerEpoch?: number,
-      validationSteps?: number): Promise<History> {
+      initialEpoch?: number, stepsPerEpoch?: number, validationSteps?: number,
+      yieldEvery?: number|'batch'|'epoch'|'never'): Promise<History> {
     if (batchSize == null) {
       batchSize = 32;
     }
@@ -1382,6 +1398,8 @@ export class Model extends Container implements tfc.InferenceModel {
 
     // TODO(cais): Pre-convert feeds for performance as in PyKeras.
 
+    let t0 = Date.now();
+
     for (let epoch = initialEpoch; epoch < epochs; ++epoch) {
       await callbackList.onEpochBegin(epoch);
       const epochLogs: UnresolvedLogs = {};
@@ -1443,6 +1461,23 @@ export class Model extends Container implements tfc.InferenceModel {
           await callbackList.onBatchEnd(batchIndex, batchLogs);
           disposeTensorsInLogs(batchLogs);
 
+          if (yieldEvery != null && typeof yieldEvery === 'number') {
+            const t1 = Date.now();
+            // if (t1 - t0 > yieldEvery) {
+            if (batchIndex === 0) {
+              console.log('----------');  // DEBUG
+            }
+            console.log(
+                `Calling nextFrames(): epoch = ${epoch}, ` +
+                `batchIndex = ${batchIndex}; ` +
+                `t1 - t0 = ${t1 - t0} ms`);  // DEBUG
+            // await tfc.nextFrame();
+            t0 = t1;
+            if (batchIndex === batches.length - 1) {
+              console.log('==========');  // DEBUG
+            }
+            // }
+          }
           if (this.stopTraining) {
             break;
           }
@@ -1456,6 +1491,14 @@ export class Model extends Container implements tfc.InferenceModel {
       if (this.stopTraining) {
         break;
       }
+
+      // TODO(cais): Remove the following. DO NOT SUBMIT.
+      const t1 = Date.now();
+      console.log(
+          `Calling nextFrames(): epoch end: ` +
+          `t1 - t0 = ${t1 - t0} ms`);  // DEBUG
+      t0 = t1;
+      console.log('~~~~~~~~~~');  // DEBUG
     }
     await callbackList.onTrainEnd();
 
@@ -1617,6 +1660,9 @@ export class Model extends Container implements tfc.InferenceModel {
       x: Tensor|Tensor[]|{[inputName: string]: Tensor},
       y: Tensor|Tensor[]|{[inputName: string]: Tensor},
       config: ModelFitConfig = {}): Promise<History> {
+    // TODO(cais): Name magic number 16.
+    const yieldEvery = config.yieldEvery == null ? 16 : config.yieldEvery;
+
     const batchSize = config.batchSize == null ? 32 : config.batchSize;
 
     // Validate user data.
@@ -1800,7 +1846,7 @@ export class Model extends Container implements tfc.InferenceModel {
     const out = await this.fitLoop(
         trainFunction, ins, outLabels, batchSize, config.epochs, config.verbose,
         callbacks, valFunction, valIns, config.shuffle, callbackMetrics,
-        config.initialEpoch, null, null);
+        config.initialEpoch, null, null, yieldEvery);
     if (needValidationDisposal) {
       valIns.forEach(tensor => tensor.dispose());
       inputs.forEach(tensor => tensor.dispose());

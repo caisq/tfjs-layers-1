@@ -634,6 +634,7 @@ describeMathCPUAndGPU('Model.fit', () => {
            });
      });
 
+  // TODO(cais): DO NOT SUBMIT.
   it('Return sequences; Fit with metric', async done => {
     // The golden values for history used in the assertion below can be obtained
     // with the following Python Keras code.
@@ -676,9 +677,10 @@ describeMathCPUAndGPU('Model.fit', () => {
     // print(history.history)
     // ```
 
-    const sequenceLength = 3;
+    console.log('*************************************** BEGIN');  // DEBUG
+    const sequenceLength = 8;                                      // 3
     const inputSize = 4;
-    const dataSize = 16;
+    const dataSize = 36;  // 16
     const validationSplit = 0.5;
     const batchSize = 3;
     // So there are 8 examples for train and validation, respectivly. The actual
@@ -709,8 +711,13 @@ describeMathCPUAndGPU('Model.fit', () => {
         ones([dataSize, sequenceLength, inputSize]),
         ones([dataSize, sequenceLength, outputSize]), {
           batchSize,
-          epochs: 1,
+          epochs: 4,  // epochs --> 1.
           validationSplit,
+          // callbacks: {
+          //   onBatchEnd: async (batch, logs) => {
+          //     console.log(JSON.stringify(logs));  // DEBUG
+          //   }
+          // }
         });
     expectTensorsClose(
         history.history['loss'] as number[], [1.3862943649291992]);
@@ -719,6 +726,7 @@ describeMathCPUAndGPU('Model.fit', () => {
     expectTensorsClose(history.history['acc'] as number[], [1.0]);
     expectTensorsClose(history.history['val_acc'] as number[], [1.0]);
     done();
+    console.log('*************************************** END');  // DEBUG
   });
 
   // TODO(cais): Test metric as a "dict", for models with >1 outputs.

@@ -381,6 +381,7 @@ export class CustomCallback extends BaseCallback {
 
   async onBatchEnd(batch: number, logs?: UnresolvedLogs): Promise<void> {
     if (this.batchEnd != null) {
+      console.log('batchEnd is not null');  // DEBUG
       await resolveScalarsInLogs(logs);
       await this.batchEnd(batch, logs as Logs);
     }
