@@ -332,14 +332,17 @@ describeMathCPU('Conv2D Layers: Symbolic', () => {
 });
 
 describeMathCPUAndGPU('Conv2D Layer: Tensor', () => {
-  const x4by4Data = [[[
-    [10, 30, 50, 70], [20, 40, 60, 80], [-10, -30, -50, -70],
-    [-20, -40, -60, -80]
-  ]]];
+  const x4by4Data = [[
+    [[1, 3, 5, 7], [2, 4, 6, 8], [-1, -3, -5, -7], [-2, -4, -6, -8]],
+    [
+      [10, 30, 50, 70], [20, 40, 60, 80], [-10, -30, -50, -70],
+      [-20, -40, -60, -80]
+    ]
+  ]];
 
   const useBiases = [false, true];
-  const biasInitializers: InitializerIdentifier[] = ['zeros', 'ones'];
-  const activations = [null, 'linear', 'relu'];
+  const biasInitializers: InitializerIdentifier[] = ['zeros'];
+  const activations = ['linear'];
 
   for (const useBias of useBiases) {
     for (const biasInitializer of biasInitializers) {
@@ -348,18 +351,40 @@ describeMathCPUAndGPU('Conv2D Layer: Tensor', () => {
             `useBias=${useBias}, biasInitializer=${biasInitializer}, ` +
             `activation=${activation}`;
         it(testTitle, () => {
-          const x = tensor4d(x4by4Data, [1, 1, 4, 4]);
+          const x = tensor4d(x4by4Data, [1, 2, 4, 4]);
           const conv2dLayer = tfl.layers.conv2d({
-            filters: 1,
+            filters: 2,
             kernelSize: [2, 2],
             strides: [2, 2],
             dataFormat: 'channelsFirst',
-            useBias,
+            useBias: false,
             kernelInitializer: 'ones',
             biasInitializer,
             activation
           });
-          const y = conv2dLayer.apply(x) as Tensor;
+          let y = conv2dLayer.apply(x) as Tensor;
+          console.log('kernel:');
+          console.log(conv2dLayer.getWeights()[0].shape);  // DEBUG
+          conv2dLayer.getWeights()[0].print();             // DEBUG
+          console.log('y:');
+          y.print();  // DEBUG
+
+          conv2dLayer.setWeights([tensor4d([
+            [
+              [[-0.5, 1], [-0.5, 1]],
+
+              [[-0.5, 1], [-0.5, 1]]
+            ],
+            [
+              [[-0.5, 1], [-0.5, 1]],
+
+              [[-0.5, 1], [-0.5, 1]]
+            ]
+          ])]);
+          y = conv2dLayer.apply(x) as Tensor;
+          console.log('y again:');
+          y.print();  // DEBUG
+
 
           let yExpectedData = [100, 260, -100, -260];
           if (useBias && biasInitializer === 'ones') {
