@@ -635,7 +635,7 @@ describeMathCPUAndGPU('Model.fit', () => {
      });
 
   // TODO(cais): DO NOT SUBMIT.
-  it('Return sequences; Fit with metric', async done => {
+  fit('Return sequences; Fit with metric', async done => {
     // The golden values for history used in the assertion below can be obtained
     // with the following Python Keras code.
     // Ran with Python Keras verion 2.1.2 and TensorFlow (CPU) version
@@ -679,9 +679,9 @@ describeMathCPUAndGPU('Model.fit', () => {
 
     console.log('*************************************** BEGIN');  // DEBUG
     const sequenceLength = 8;                                      // 3
-    const inputSize = 4;
+    const inputSize = 8;  // 4
     const dataSize = 36;  // 16
-    const validationSplit = 0.5;
+    const validationSplit = 0;  // TODO(cais): Restore 0.5.
     const batchSize = 3;
     // So there are 8 examples for train and validation, respectivly. The actual
     // batches during training and validation will be 3, 3 and 2. This tests the

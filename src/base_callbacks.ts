@@ -305,6 +305,7 @@ export class History extends BaseCallback {
    * Await the values of all losses and metrics.
    */
   async syncData() {
+    console.log('In syncData');  // DEBUG
     const promises: Array<Promise<Float32Array|Int32Array|Uint8Array>> = [];
     const keys: string[] = [];
     const indices: number[] = [];
