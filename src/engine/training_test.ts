@@ -1671,7 +1671,11 @@ describeMathGPU('Model.fit: yieldEvery', () => {
   }
 
   it('auto: 1 batches per epoch; 20 epochs; short batches', async () => {
-    const presetBatchTimestamps = [0, 2, 4, 6, 8, 10];
+    // The faked duration of the first batch is intentionally made really long
+    // (1000 ms), much longer than the duration of the subsequent batches
+    // (2 ms). But the long duration of the first batch should be ignored by
+    // the 'auto' yielding model.
+    const presetBatchTimestamps = [0, 1000, 1002, 1004, 1006, 1008];
     let counter = 0;
     spyOn(Date, 'now').and.callFake(() => presetBatchTimestamps[counter++]);
     let nextFrameCallCount = 0;
