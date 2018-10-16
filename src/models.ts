@@ -19,9 +19,9 @@ import {Dataset} from './engine/dataset_stub';
 import {Input} from './engine/input_layer';
 import {getSourceInputs, Layer, Node, SymbolicTensor} from './engine/topology';
 import {Model, ModelCompileConfig, ModelEvaluateConfig} from './engine/training';
-import {ModelFitDatasetConfig, ModelEvaluateDatasetConfig} from './engine/training_dataset';
+import {ModelEvaluateDatasetConfig, ModelFitDatasetConfig} from './engine/training_dataset';
 import {ModelFitConfig} from './engine/training_tensors';
-import {RuntimeError, ValueError, NotImplementedError} from './errors';
+import {NotImplementedError, RuntimeError, ValueError} from './errors';
 import {deserialize} from './layers/serialization';
 import {Kwargs, NamedTensorMap, Shape} from './types';
 import {JsonDict} from './types';
@@ -50,6 +50,7 @@ export async function modelFromJSON(
     // 'model_config' field currently.
     modelTopology = modelTopology['model_config'] as JsonDict;
   }
+  console.log('=== 2');  // DEBUG
   const tsConfig =
       convertPythonicToTs(modelTopology) as serialization.ConfigDict;
   const model = deserialize(tsConfig, customObjects) as Model;
@@ -643,9 +644,9 @@ export class Sequential extends Model {
   //   available.
   /**
    * Evaluate model using a dataset object.
-   * 
+   *
    * Note: Unlike `evaluate()`, this method is asynchronous (`async`);
-   * 
+   *
    * @param dataset A dataset object. Its `iterator()` method is expected
    *   to generate a dataset iterator object, the `next()` method of which
    *   is expected to produce data batches for evaluation. The return value
@@ -663,8 +664,8 @@ export class Sequential extends Model {
    * @doc {heading: 'Models', subheading: 'Classes', configParamIndices: [2]}
    */
   async evaluateDataset<T extends TensorContainer>(
-    dataset: Dataset<T>, config: ModelEvaluateDatasetConfig):
-    Promise<Scalar|Scalar[]> {
+      dataset: Dataset<T>,
+      config: ModelEvaluateDatasetConfig): Promise<Scalar|Scalar[]> {
     if (!this.built) {
       throw new RuntimeError(
           'The model needs to be compiled before being used.');
@@ -825,15 +826,15 @@ export class Sequential extends Model {
     let extraModelConfig: serialization.ConfigDict = {};
     if (config instanceof Array) {
       if (!(config[0].className != null) ||
-            config[0]['className'] === 'Merge') {
+          config[0]['className'] === 'Merge') {
         throw new ValueError('Legacy serialization format not supported yet.');
       }
       configArray = config;
     } else {
       util.assert(
-          config['layers'] != null, 
+          config['layers'] != null,
           `When the config data for a Sequential model is not an Array, ` +
-          `it must be an Object that contains the 'layers' field.`);
+              `it must be an Object that contains the 'layers' field.`);
       configArray = config['layers'] as serialization.ConfigDictArray;
       delete config['layers'];
       extraModelConfig = config;
