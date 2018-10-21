@@ -50,6 +50,11 @@ export function l2Normalize(x: Tensor, axis?: number): Tensor {
  * @return Mean squared error Tensor.
  */
 export function meanSquaredError(yTrue: Tensor, yPred: Tensor): Tensor {
+  console.log('In meanSquredError');  // DEBUG
+  // console.log('yTrue');
+  // yTrue.print();
+  // console.log('yPred');
+  // yPred.print();
   return tidy(() => tfc.mean(K.square(tfc.sub(yPred, yTrue)), -1));
 }
 

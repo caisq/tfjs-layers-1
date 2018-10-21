@@ -241,6 +241,7 @@ export async function fitDataset<T extends TensorContainer>(
     // tslint:disable-next-line:no-any
     model: any, dataset: Dataset<T>,
     config: ModelFitDatasetConfig<T>): Promise<History> {
+  console.log('In fitDataset()');  // DEBUG
   tfc.util.assert(
       model.optimizer != null,
       'You must compile a model before training/testing. Use ' +
@@ -318,6 +319,7 @@ export async function fitDataset<T extends TensorContainer>(
     const epochLogs: UnresolvedLogs = {};
     const dataIterator = await dataset.iterator();
     while (epoch < config.epochs) {
+      console.log(`===== epoch = ${epoch} ======`);  // DEBUG
       await callbackList.onEpochBegin(epoch);
       let stepsDone = 0;
       let batchIndex = 0;
@@ -344,7 +346,22 @@ export async function fitDataset<T extends TensorContainer>(
 
         // Train on batch.
         // TODO(cais): Take care of models with multiple outputs.
+        console.log('--- xsAndYs:');    // DEBUG
+        console.log(xsAndYs);           // DEBUG
+        console.log(xsAndYs[0].shape);  // DEBUG
+        console.log(xsAndYs[1].shape);  // DEBUG
+        // xsAndYs[0] = tfc.onesLike(xsAndYs[0]);
+        // xsAndYs[1] = tfc.randomNormal((xsAndYs[1] as tfc.Tensor).shape);
+        // xsAndYs[0] = xsAndYs[0].clone();
+        // xsAndYs[1] = xsAndYs[1].clone();
+        xsAndYs[0].print();  // DEBUG
+        xsAndYs[1].print();  // DEBUG
+        // console.log('-- model weights --');
+        // console.log(model.getWeights()[0].shape);
+        // console.log(model.getWeights()[1].shape);
         const outs = trainFunction(xsAndYs);
+        console.log('--- outs[0]:');  // DEBUG
+        // outs[0].print();              // DEBUG
         tfc.dispose(xsAndYs);
         for (let i = 0; i < outLabels.length; ++i) {
           const label = outLabels[i];
@@ -353,7 +370,9 @@ export async function fitDataset<T extends TensorContainer>(
           tfc.keep(out);
         }
 
+        console.log('Calling onBatchEnd');  // DEBUG
         await callbackList.onBatchEnd(batchIndex, batchLogs);
+        console.log('DONE calling onBatchEnd');  // DEBUG
         disposeTensorsInLogs(batchLogs);
 
         batchIndex++;

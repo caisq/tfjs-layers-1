@@ -822,9 +822,9 @@ export class Model extends Container implements tfc.InferenceModel {
   //   available.
   /**
    * Evaluate model using a dataset object.
-   * 
+   *
    * Note: Unlike `evaluate()`, this method is asynchronous (`async`);
-   * 
+   *
    * @param dataset A dataset object. Its `iterator()` method is expected
    *   to generate a dataset iterator object, the `next()` method of which
    *   is expected to produce data batches for evaluation. The return value
@@ -842,8 +842,8 @@ export class Model extends Container implements tfc.InferenceModel {
    * @doc {heading: 'Models', subheading: 'Classes', configParamIndices: [2]}
    */
   async evaluateDataset<T extends TensorContainer>(
-      dataset: Dataset<T>, config: ModelEvaluateDatasetConfig):
-      Promise<Scalar|Scalar[]> {
+      dataset: Dataset<T>,
+      config: ModelEvaluateDatasetConfig): Promise<Scalar|Scalar[]> {
     this.makeTestFunction();
     return evaluateDataset(this, dataset, config);
   }
@@ -1231,6 +1231,7 @@ export class Model extends Container implements tfc.InferenceModel {
    */
   protected makeTrainFunction(): (data: Tensor[]) => Scalar[] {
     return (data: Tensor[]) => {
+      console.log('*** train func 0');  // DEBUG
       const losses: Tensor[] = [];
       const lossValues: Scalar[] = [];
 
@@ -1239,6 +1240,8 @@ export class Model extends Container implements tfc.InferenceModel {
           this.inputs.length, this.inputs.length + this.outputs.length);
 
       const metricsValues: Scalar[] = [];
+
+      console.log('*** train func 10');  // DEBUG
 
       // Create a function that computes the total loss based on the
       // inputs. This function is used for obtaining gradients through
@@ -1273,6 +1276,7 @@ export class Model extends Container implements tfc.InferenceModel {
         // Compute the metrics.
         // TODO(cais): These should probably be calculated outside
         //   totalLossFunction to benefit speed?
+        console.log('*** train func 20');  // DEBUG
         for (let i = 0; i < this.metricsTensors.length; ++i) {
           const metric = this.metricsTensors[i][0];
           const outputIndex = this.metricsTensors[i][1];
@@ -1285,13 +1289,21 @@ export class Model extends Container implements tfc.InferenceModel {
           // TODO(cais): Use a scope() instead, to avoid ownership.
           metricsValues.push(meanMetric);
         }
+        console.log('*** train func 30');  // DEBUG
 
         totalLoss = tfc.mean(totalLoss);
+        totalLoss.print();  // DEBUG
 
         // Add regularizer penalties.
         this.calculateLosses().forEach(regularizerLoss => {
+          console.log('regularizedLoss:');  // DEBUG
+          regularizerLoss.print();          // DEBUG
+          console.log('Added to:');         // DEBUG
+          totalLoss.print();                // DEBUG
           totalLoss = tfc.add(totalLoss, regularizerLoss);
         });
+        console.log('*** train func 40');  // DEBUG
+        totalLoss.print();                 // DEBUG
 
         return totalLoss as Scalar;
       };
@@ -1299,8 +1311,12 @@ export class Model extends Container implements tfc.InferenceModel {
       const variables = this.collectedTrainableWeights.map(
           param => param.read() as tfc.Variable);
       const returnCost = true;
+      console.log('*** Calling minimize');  // DEBUG
+      this.getWeights()[0].print();
+      this.getWeights()[1].print();
       const totalLossValue =
           this.optimizer.minimize(totalLossFunction, returnCost, variables);
+      console.log('*** Done calling minimize');  // DEBUG
 
       return [totalLossValue].concat(metricsValues);
     };
