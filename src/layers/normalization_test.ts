@@ -427,7 +427,7 @@ describeMathCPUAndGPU('BatchNormalization Layers: Tensor', () => {
         movingVarianceValue, [37.018574, 22.344547, 12.339525, 7.003515]);
   });
 
-  it('Fit: 2D, BatchNorm Layer between two Dense Layers', async () => {
+  fit('Fit: 2D, BatchNorm Layer between two Dense Layers', async () => {
     // Use the following Python code to get the reference values for
     // assertion:
     // ```python
@@ -439,14 +439,16 @@ describeMathCPUAndGPU('BatchNormalization Layers: Tensor', () => {
     //     4, kernel_initializer='ones', use_bias=False, input_shape=(4,))
     // layer2 = keras.layers.BatchNormalization()
     // layer3 = keras.layers.Dense(1, kernel_initializer='ones',
-    // use_bias=False) model = keras.Sequential([layer1, layer2, layer3])
+    //                             use_bias=False)
+    // model = keras.Sequential([layer1, layer2, layer3])
     //
     // optimizer = keras.optimizers.sgd(lr=0.1)
     // model.compile(loss='mean_squared_error', optimizer=optimizer)
     //
     // xs = np.array([[1, 2, 3, 4], [2, 4, 6, 8], [12, 11, 10, 9]],
-    // dtype=np.float32) ys = np.zeros([3, 1]) history = model.fit(xs, ys,
-    // epochs=3, batch_size=3)
+    //                dtype=np.float32)
+    // ys = np.zeros([3, 1])
+    // history = model.fit(xs, ys, epochs=3, batch_size=3)
     //
     // print(history.history)
     // print(layer1.get_weights())
@@ -488,12 +490,12 @@ describeMathCPUAndGPU('BatchNormalization Layers: Tensor', () => {
         betaValue,
         [5.5367128e-08, 5.5367128e-08, 5.5367128e-08, 5.5367128e-08]);
     const movingMeanValue = layer2.getWeights()[2];
+    // TODO(cais): Update this to tf.keras.
     expectTensorsClose(
-        movingMeanValue, [23.999907, 23.999907, 23.999907, 23.999907]);
+        movingMeanValue, [0.7128234, 0.7128234, 0.7128234, 0.7128234]);
     const movingVarianceValue = layer2.getWeights()[3];
     expectTensorsClose(
-        movingVarianceValue,
-        [268.13364, 268.13364, 268.13364, 268.13364]);
+        movingVarianceValue,[6.276868, 6.276868, 6.276868, 6.276868]);
     const dense2KernelValue = layer3.getWeights()[0];
     expectTensorsClose(
         dense2KernelValue,
@@ -503,7 +505,7 @@ describeMathCPUAndGPU('BatchNormalization Layers: Tensor', () => {
   });
 
   // Python reference code:
-  // ```py
+  // ```python
   // import numpy as np
   // import tensorflow.keras as keras
   //
@@ -528,7 +530,7 @@ describeMathCPUAndGPU('BatchNormalization Layers: Tensor', () => {
   // h = model.fit(xs, ys, epochs=3)
   // print(h.history)
   // ```
-  fit('Fit: Wtih conv2d layer', async () => {
+  it('Fit: Wtih conv2d layer', async () => {
     const model = tfl.sequential();
     model.add(tfl.layers.conv2d({
       filters: 4,
@@ -553,19 +555,50 @@ describeMathCPUAndGPU('BatchNormalization Layers: Tensor', () => {
     const xs = tensor4d(xsData, [2, 5, 5, 1]);
     const ys = tensor2d([0, 1], [2, 1]);
 
-    await model.getWeights()[0].print();
-    await model.getWeights()[1].print();
-    await model.getWeights()[2].print();
-    await model.getWeights()[3].print();
-    const h = await model.fit(xs, ys, {epochs: 1});
-    await model.getWeights()[0].print();
-    await model.getWeights()[1].print();
-    await model.getWeights()[2].print();
-    await model.getWeights()[3].print();
+    // await model.getWeights()[0].print();
+    // await model.getWeights()[1].print();
+    // await model.getWeights()[2].print();
+    // await model.getWeights()[3].print();
+    const h = await model.fit(xs, ys, {epochs: 2});
+    // await model.getWeights()[0].print();
+    // await model.getWeights()[1].print();
+    // await model.getWeights()[2].print();
+    // await model.getWeights()[3].print();
     expectTensorsClose(
         h.history.loss as number[], [3332.9971, 2122.5361], 0.01);
   });
 
+  // Reference Python code:
+  // ```python
+  // import numpy as np
+  // import tensorflow as tf
+  // from tensorflow import keras
+  //
+  // model = keras.Sequential()
+  // model.add(keras.layers.Conv2DTranspose(
+  //     4,
+  //     2,
+  //     kernel_initializer='ones',
+  //     bias_initializer='zeros',
+  //     input_shape=[5, 5, 1]))
+  // model.add(keras.layers.BatchNormalization())
+  // model.add(keras.layers.Flatten())
+  // model.add(keras.layers.Dense(
+  //     1,
+  //     kernel_initializer='ones',
+  //     bias_initializer='zeros'))
+  //
+  // model.compile(loss='mse', optimizer='sgd')
+  //
+  // xs = np.arange(2 * 5 * 5 * 1).reshape([2, 5, 5, 1]).astype(np.float32)
+  // xs = (xs - 25.0) / 100.0
+  // ys = np.array([[0], [1]])
+  //
+  // print(model.layers[1].get_weights())
+  // h = model.fit(xs, ys, epochs=2)
+  // print(h.history)
+  // print(model.layers[1].get_weights())
+  // ```
   it('Fit: Wtih conv2dTranspose layer', async () => {
     const model = tfl.sequential();
     model.add(tfl.layers.conv2dTranspose({
@@ -588,18 +621,28 @@ describeMathCPUAndGPU('BatchNormalization Layers: Tensor', () => {
     for (let i = 0; i < 2 * 5 * 5 * 1; ++i) {
       xsData.push(i);
     }
-    const xs = (tensor4d(xsData, [2, 5, 5, 1]).sub(scalar(25))).div(scalar(100));
+    const xs =
+        (tensor4d(xsData, [2, 5, 5, 1]).sub(scalar(25))).div(scalar(100));
     const ys = tensor2d([0, 1], [2, 1]);
 
-    // (model.predict(xs) as Tensor).print();
-
-    await model.getWeights()[0].print();
-    await model.getWeights()[1].print();
-    await model.getWeights()[2].print();
-    await model.getWeights()[3].print();
-    const h = await model.fit(xs, ys, {epochs: 1});
+    const h = await model.fit(xs, ys, {epochs: 2});
     console.log(h.history);
-    // expectTensorsClose(h.history.loss as number[], [3332.9971, 2122.5361], 0.01);
+    expect(h.history.loss[0]).toBeCloseTo(13922.4492);
+    expect(h.history.loss[1]).toBeCloseTo(106532048, -3);
+    const weights = model.layers[1].getWeights();
+    expect(weights.length).toEqual(4);
+    expectTensorsClose(
+        weights[0],
+        tensor1d([7661.0874, 7661.0874, 7661.0874, 7661.0874]), 1e-2);
+    expectTensorsClose(
+        weights[1],
+        tensor1d([-118.35103, -118.35103, -118.35103, -118.35103]), 1e-2);
+    expectTensorsClose(
+        weights[2],
+        tensor1d([-0.00026271, -0.00026271, -0.00026271, -0.00026271]));
+    expectTensorsClose(
+        weights[3],
+        tensor1d([0.98333836, 0.98333836, 0.98333836, 0.98333836]));
   });
 
   it('Fit: 3D, BatchNorm Layer Only', async () => {

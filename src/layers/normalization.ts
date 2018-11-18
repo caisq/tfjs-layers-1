@@ -290,7 +290,7 @@ export class BatchNormalization extends Layer {
   private beta: LayerVariable;
   private movingMean: LayerVariable;
   private movingVariance: LayerVariable;
-  private stepCount: number;
+//   private stepCount: number;
 
   constructor(config?: BatchNormalizationLayerConfig) {
     if (config == null) {
@@ -314,7 +314,7 @@ export class BatchNormalization extends Layer {
     this.gammaConstraint = getConstraint(config.gammaConstraint);
     this.betaRegularizer = getRegularizer(config.betaRegularizer);
     this.gammaRegularizer = getRegularizer(config.gammaRegularizer);
-    this.stepCount = 0;
+    // this.stepCount = 0;
   }
 
   public build(inputShape: Shape|Shape[]): void {
@@ -331,6 +331,7 @@ export class BatchNormalization extends Layer {
         [new InputSpec({ndim: inputShape.length, axes: {[axis]: dim}})];
     const shape = [dim];
     if (this.scale) {
+      console.log(`Adding gamma, shape = ${JSON.stringify(shape)}`);  // DEBUG
       this.gamma = this.addWeight(
           'gamma', shape, null, this.gammaInitializer, this.gammaRegularizer,
           true, this.gammaConstraint);
@@ -400,6 +401,18 @@ export class BatchNormalization extends Layer {
       const varianceDebiased = variance.mul(
           getScalar(sampleSize / (sampleSize - (1 + this.epsilon))));
 
+      const doMovingAverage =
+          (variable: LayerVariable, value: Tensor, momentum: number): void => {
+            tfc.tidy(() => {
+            console.log('value:');  // DEBUG
+            value.print();  // DEBUG
+            const decay = getScalar(1.0).sub(getScalar(momentum));
+            const origValue = variable.read();
+            const updateDelta = origValue.sub(value).mul(decay);
+            variable.write(origValue.sub(updateDelta));
+            });
+          };
+
       // Perform updates to moving mean and moving variance for training.
       // Porting Note: In PyKeras, these updates to `movingMean` and
       //   `movingAverage` are done as a deferred Graph, added to the `Layer`'s
@@ -407,14 +420,23 @@ export class BatchNormalization extends Layer {
       //   and encapsulate the updates in a function that is invoked
       //   immediately.
       const updateMovingMeanAndVariance = () => {
-        this.stepCount++;
-        const newMovingMean = tfc.movingAverage(
-            this.movingMean.read(), mean, this.momentum, this.stepCount);
-        this.movingMean.write(newMovingMean);
-        const newMovingVariance = tfc.movingAverage(
-            this.movingVariance.read(), varianceDebiased, this.momentum,
-            this.stepCount);
-        this.movingVariance.write(newMovingVariance);
+        // this.stepCount++;
+        console.log(`momentum = ${this.momentum}`);  // DEBUG
+        console.log(`mean:`);  // DEBUG
+        mean.print();  // DEBUG
+        // TODO(cais): Clean up.
+        // const newMovingMean = tfc.movingAverage(
+        //     this.movingMean.read(), mean, this.momentum, this.stepCount);
+        console.log('doMovingAverage mean');  // DEBUG
+        doMovingAverage(this.movingMean, mean, this.momentum);
+        // console.log('doMovingAverage variance');  // DEBUG
+        // this.movingMean.write(newMovingMean);
+        // const newMovingVariance = tfc.movingAverage(
+        //     this.movingVariance.read(), varianceDebiased, this.momentum,
+        //     this.stepCount);
+        console.log('doMovingAverage variance');  // DEBUG
+        doMovingAverage(this.movingVariance, varianceDebiased, this.momentum);
+        // this.movingVariance.write(newMovingVariance);
       };
       updateMovingMeanAndVariance();
 
