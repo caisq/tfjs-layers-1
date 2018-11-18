@@ -12,7 +12,7 @@
  * Unit tests for normalization layers.
  */
 
-import {onesLike, Tensor, tensor1d, tensor2d, tensor3d, tensor4d, train, zeros, zerosLike} from '@tensorflow/tfjs-core';
+import {onesLike, scalar, Tensor, tensor1d, tensor2d, tensor3d, tensor4d, train, zeros, zerosLike} from '@tensorflow/tfjs-core';
 
 import * as tfl from '../index';
 import {SymbolicTensor} from '../engine/topology';
@@ -500,6 +500,106 @@ describeMathCPUAndGPU('BatchNormalization Layers: Tensor', () => {
         tensor2d(
             [[0.18779878], [0.18779878], [0.18779878], [0.18779878]],
             [4, 1]));
+  });
+
+  // Python reference code:
+  // ```py
+  // import numpy as np
+  // import tensorflow.keras as keras
+  //
+  // model = keras.Sequential()
+  // model.add(keras.layers.Conv2D(
+  //     4,
+  //     2,
+  //     kernel_initializer='ones',
+  //     bias_initializer='zeros',
+  //     input_shape=[5, 5, 1]))
+  // model.add(keras.layers.BatchNormalization())
+  // model.add(keras.layers.Flatten())
+  // model.add(keras.layers.Dense(
+  //     1,
+  //     kernel_initializer='ones',
+  //     bias_initializer='zeros'))
+  //
+  // model.compile(loss='mse', optimizer='sgd')
+  //
+  // xs = np.arange(2 * 5 * 5 * 1).reshape([2, 5, 5, 1])
+  // ys = np.array([[0], [1]])
+  // h = model.fit(xs, ys, epochs=3)
+  // print(h.history)
+  // ```
+  fit('Fit: Wtih conv2d layer', async () => {
+    const model = tfl.sequential();
+    model.add(tfl.layers.conv2d({
+      filters: 4,
+      kernelSize: 2,
+      kernelInitializer: 'ones',
+      biasInitializer: 'zeros',
+      inputShape: [5, 5, 1]
+    }));
+    model.add(tfl.layers.batchNormalization());
+    model.add(tfl.layers.flatten());
+    model.add(tfl.layers.dense({
+      units: 1,
+      kernelInitializer: 'ones',
+      biasInitializer: 'zeros'
+    }));
+    model.compile({loss: 'meanSquaredError', optimizer: 'sgd'});
+
+    const xsData = [];
+    for (let i = 0; i < 2 * 5 * 5 * 1; ++i) {
+      xsData.push(i);
+    }
+    const xs = tensor4d(xsData, [2, 5, 5, 1]);
+    const ys = tensor2d([0, 1], [2, 1]);
+
+    await model.getWeights()[0].print();
+    await model.getWeights()[1].print();
+    await model.getWeights()[2].print();
+    await model.getWeights()[3].print();
+    const h = await model.fit(xs, ys, {epochs: 1});
+    await model.getWeights()[0].print();
+    await model.getWeights()[1].print();
+    await model.getWeights()[2].print();
+    await model.getWeights()[3].print();
+    expectTensorsClose(
+        h.history.loss as number[], [3332.9971, 2122.5361], 0.01);
+  });
+
+  it('Fit: Wtih conv2dTranspose layer', async () => {
+    const model = tfl.sequential();
+    model.add(tfl.layers.conv2dTranspose({
+      filters: 4,
+      kernelSize: 2,
+      kernelInitializer: 'ones',
+      biasInitializer: 'zeros',
+      inputShape: [5, 5, 1]
+    }));
+    model.add(tfl.layers.batchNormalization());
+    model.add(tfl.layers.flatten());
+    model.add(tfl.layers.dense({
+      units: 1,
+      kernelInitializer: 'ones',
+      biasInitializer: 'zeros'
+    }));
+    model.compile({loss: 'meanSquaredError', optimizer: 'sgd'});
+
+    const xsData = [];
+    for (let i = 0; i < 2 * 5 * 5 * 1; ++i) {
+      xsData.push(i);
+    }
+    const xs = (tensor4d(xsData, [2, 5, 5, 1]).sub(scalar(25))).div(scalar(100));
+    const ys = tensor2d([0, 1], [2, 1]);
+
+    // (model.predict(xs) as Tensor).print();
+
+    await model.getWeights()[0].print();
+    await model.getWeights()[1].print();
+    await model.getWeights()[2].print();
+    await model.getWeights()[3].print();
+    const h = await model.fit(xs, ys, {epochs: 1});
+    console.log(h.history);
+    // expectTensorsClose(h.history.loss as number[], [3332.9971, 2122.5361], 0.01);
   });
 
   it('Fit: 3D, BatchNorm Layer Only', async () => {
