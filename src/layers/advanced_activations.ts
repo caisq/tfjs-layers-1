@@ -46,6 +46,8 @@ export class ReLU extends Layer {
 
   constructor(config?: ReLULayerConfig) {
     super(config == null ? {} : config);
+    // DEBUG
+    console.log(`In ReLU config: config = ${JSON.stringify(config)}`);
     this.supportsMasking = true;
     if (config != null) {
       this.maxValue = config.maxValue;
@@ -56,6 +58,7 @@ export class ReLU extends Layer {
     inputs = getExactlyOneTensor(inputs);
     let output = relu(inputs);
     if (this.maxValue != null) {
+      console.log(`this.maxValue = ${this.maxValue}`);  // DEBUG
       output = clipByValue(output, 0, this.maxValue);
     }
     return output;
