@@ -85,15 +85,14 @@ describeMathCPU('standardizeInputData', () => {
     expectTensorsClose(outputs[0], getX());
   });
   it('Array of two Tensors, Array of two names', () => {
-    const outputs =
-        standardizeInputData([getX(), getY()], ['Foo', 'Bar']);
+    const outputs = standardizeInputData([getX(), getY()], ['Foo', 'Bar']);
     expect(outputs.length).toEqual(2);
     expectTensorsClose(outputs[0], getX());
     expectTensorsClose(outputs[1], getY());
   });
   it('Dict of two Tensors, Array of two names', () => {
-    const outputs = standardizeInputData(
-        {'Foo': getX(), 'Bar': getY()}, ['Foo', 'Bar']);
+    const outputs =
+        standardizeInputData({'Foo': getX(), 'Bar': getY()}, ['Foo', 'Bar']);
     expect(outputs.length).toEqual(2);
     expectTensorsClose(outputs[0], getX());
     expectTensorsClose(outputs[1], getY());
@@ -1211,9 +1210,9 @@ describeMathCPUAndGPU('Model.fit', () => {
 
   class StopAfterNBatches extends tfl.Callback {
     private readonly batchesToTrain: number;
-    constructor(epochsToTrain: number) {
+    constructor(batchesToTrain: number) {
       super();
-      this.batchesToTrain = epochsToTrain;
+      this.batchesToTrain = batchesToTrain;
     }
 
     async onBatchEnd(batch: number, logs?: Logs) {
@@ -1266,6 +1265,29 @@ describeMathCPUAndGPU('Model.fit', () => {
     // Check that model.fit can still be called after force stopping.
     history = await model.fit(inputs, targets, {epochs: 2});
     expect(history.history.loss.length).toEqual(2);
+  });
+
+  it('Stop training resets at start of Model.fit()', async () => {
+    const sequentialModel = tfl.sequential();
+    sequentialModel.add(tfl.layers.dense(
+        {units: 1, kernelInitializer: 'ones', inputShape: [inputSize]}));
+    // numSamples is 5.
+    inputs = ones([numSamples, inputSize]);
+    targets = ones([numSamples, 1]);
+    sequentialModel.compile({optimizer: 'SGD', loss: 'meanSquaredError'});
+    // Order 10 epochs of training, but the training should stop after only one
+    // epochs due to the callback that orders the training to stop after two
+    // batches. The first epoch should have five batches due to a batchSize
+    // of 1.
+    let history = await sequentialModel.fit(
+        inputs, targets,
+        {batchSize: 1, epochs: 10, callbacks: [new StopAfterNBatches(2)]});
+    expect(history.history.loss.length).toEqual(1);
+
+    // Running fit again should now run to completion
+    history =
+        await sequentialModel.fit(inputs, targets, {batchSize: 1, epochs: 10});
+    expect(history.history.loss.length).toEqual(10);
   });
 
   it('Invalid dict loss: nonexistent output name', () => {

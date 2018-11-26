@@ -324,9 +324,11 @@ export async function fitDataset<T extends TensorContainer>(
         config.batchesPerEpoch,
         null,  // Batch size determined by the dataset itself.
         doValidation, callbackMetrics);
+    callbackList.setModel(model);
     model.history = history;
 
     await callbackList.onTrainBegin();
+    model.stopTraining_ = false;
     let epoch = config.initialEpoch == null ? 0 : config.initialEpoch;
     const epochLogs: UnresolvedLogs = {};
 
