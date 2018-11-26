@@ -1980,6 +1980,173 @@ describeMathGPU('Model.fit: yieldEvery', () => {
   });
 });
 
+describeMathCPUAndGPU('Model.trainOnBatch', () => {
+  // Reference Python Keras code:
+  // ```py
+  // import keras
+  // import numpy as np
+  //
+  // model = keras.Sequential()
+  // model.add(keras.layers.Dense(
+  //     1, input_shape=[3], kernel_initializer='zeros'))
+  // model.compile(loss='mean_squared_error', optimizer='sgd')
+  //
+  // batch_size = 4
+  // xs = np.ones([batch_size, 3])
+  // ys = np.ones([batch_size, 1])
+  //
+  // for _ in range(3):
+  //   loss = model.train_on_batch(xs, ys)
+  //   print(loss)
+  // ```
+  it('Sequential MLP: correctness', () => {
+    const model = tfl.sequential();
+    model.add(tfl.layers.dense({
+      units: 1,
+      inputShape: [3],
+      kernelInitializer: 'zeros'
+    }));
+    model.compile({loss: 'meanSquaredError', optimizer: 'sgd'});
+
+    const batchSize = 4;
+    const xs = tfc.ones([batchSize, 3]);
+    const ys = tfc.ones([batchSize, 1]);
+    let loss = model.trainOnBatch(xs, ys) as Scalar;
+    expectTensorsClose(loss, tfc.scalar(1.0));
+    loss = model.trainOnBatch(xs, ys) as Scalar;
+    expectTensorsClose(loss, tfc.scalar(0.8464));
+    loss = model.trainOnBatch(xs, ys) as Scalar;
+    expectTensorsClose(loss, tfc.scalar(0.716393));
+  });
+
+  // Reference Python Keras code:
+  // ```py
+  // import keras
+  // import numpy as np
+  //
+  // input1 = keras.Input(shape=[2])
+  // input2 = keras.Input(shape=[2])
+  // y1 = keras.layers.Add()([input1, input2])
+  // y2 = keras.layers.Concatenate()([input1, input2])
+  // output1 = keras.layers.Dense(
+  //     units=1,
+  //     activation='linear',
+  //     kernel_initializer='zeros')(y1)
+  // output2 = keras.layers.Dense(
+  //     units=1,
+  //     activation='sigmoid',
+  //     kernel_initializer='zeros')(y2)
+  // model = keras.Model(inputs=[input1, input2], outputs=[output1, output2])
+  // model.compile(loss=['mean_squared_error', 'binary_crossentropy'],
+  //               optimizer='sgd')
+  //
+  // batch_size = 4
+  // xs1 = np.ones([batch_size, 2])
+  // xs2 = np.ones([batch_size, 2])
+  // ys1 = np.ones([batch_size, 1])
+  // ys2 = np.ones([batch_size, 1])
+  //
+  // for _ in range(3):
+  //   losses = model.train_on_batch([xs1, xs2], [ys1, ys2])
+  //   print(losses)
+  // ```
+  it('Functional two inputs and two outputs: correctness', () => {
+    const input1 = tfl.input({shape: [2]});
+    const input2 = tfl.input({shape: [2]});
+    const y1 = tfl.layers.add().apply([input1, input2]);
+    const y2 = tfl.layers.concatenate().apply([input1, input2]);
+    const output1 = tfl.layers.dense({
+      units: 1,
+      activation: 'linear',
+      kernelInitializer: 'zeros'
+    }).apply(y1) as tfl.SymbolicTensor;
+    const output2 = tfl.layers.dense({
+      units: 1,
+      activation: 'sigmoid',
+      kernelInitializer: 'zeros'
+    }).apply(y2) as tfl.SymbolicTensor;
+    const model = tfl.model({
+      inputs: [input1, input2],
+      outputs: [output1, output2]
+    });
+    model.compile({
+      loss: ['meanSquaredError', 'binaryCrossentropy'],
+      optimizer: 'sgd'
+    });
+
+    const batchSize = 4;
+    const xs1 = tfc.ones([batchSize, 2]);
+    const xs2 = tfc.ones([batchSize, 2]);
+    const ys1 = tfc.ones([batchSize, 1]);
+    const ys2 = tfc.ones([batchSize, 1]);
+    let losses = model.trainOnBatch([xs1, xs2],  [ys1, ys2]) as Scalar[];
+    expect(losses.length).toEqual(3);
+    expectTensorsClose(losses[0], tfc.scalar(1.6931472));
+    expectTensorsClose(losses[1], tfc.scalar(1.0));
+    expectTensorsClose(losses[2], tfc.scalar(0.6931472));
+    losses = model.trainOnBatch([xs1, xs2],  [ys1, ys2]) as Scalar[];
+    expect(losses.length).toEqual(3);
+    expectTensorsClose(losses[0], tfc.scalar(1.3531253));
+    expectTensorsClose(losses[1], tfc.scalar(0.6724));
+    expectTensorsClose(losses[2], tfc.scalar(0.68072534));
+    losses = model.trainOnBatch([xs1, xs2],  [ys1, ys2]) as Scalar[];
+    expect(losses.length).toEqual(3);
+    expectTensorsClose(losses[0], tfc.scalar(1.1207337));
+    expectTensorsClose(losses[1], tfc.scalar(0.45212176));
+    expectTensorsClose(losses[2], tfc.scalar(0.66861194));
+  });
+
+  // Reference Python Keras code.
+  // ```py
+  // import keras
+  // import numpy as np
+  //
+  // model = keras.Sequential()
+  // model.add(keras.layers.Dense(
+  //     3, input_shape=[2], activation='softmax', kernel_initializer='ones'))
+  // model.compile(loss='categorical_crossentropy', optimizer='sgd')
+  //
+  // xs = np.array([[0.5, 0.5], [1, 1], [0, 1]], dtype=np.float32)
+  // ys = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]], dtype=np.float32)
+  //
+  // for _ in range(3):
+  //   loss = model.train_on_batch(xs, ys)
+  //   print(loss)
+  // ```
+  it('Categorical: No memory leak', () => {
+    const model = tfl.sequential();
+    model.add(tfl.layers.dense({
+      units: 3,
+      inputShape: [2],
+      activation: 'softmax',
+      kernelInitializer: 'ones'
+    }));
+    model.compile({loss: 'categoricalCrossentropy', optimizer: 'sgd'});
+
+    const xs = tfc.tensor2d([[0.5, 0.5], [1, 1], [0, 1]]);
+    const ys = tfc.tensor2d([[1, 0, 0], [0, 1, 0], [0, 0, 1]]);
+    // Perform burn-in.
+    (model.trainOnBatch(xs, ys) as Scalar).dispose();
+    const numTensors0 = memory().numTensors;
+    for (let i = 0; i < 3; ++i) {
+      const loss = model.trainOnBatch(xs, ys) as Scalar;
+      loss.print();
+      tfc.tidy(() => {
+        if (i === 0) {
+          expectTensorsClose(loss, tfc.scalar(1.0986123));
+        } else if (i === 1) {
+          expectTensorsClose(loss, tfc.scalar(1.0978721));
+        } else {
+          expectTensorsClose(loss, tfc.scalar(1.0971345));
+        }
+      });
+      loss.dispose();
+      // Assert no tensor memory leak.
+      expect(memory().numTensors).toEqual(numTensors0);
+    }
+  });
+});
+
 describeMathCPUAndGPU('Model.evaluate', () => {
   const numExamples = 8;
   const inputSize = 2;
