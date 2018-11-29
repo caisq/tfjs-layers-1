@@ -427,7 +427,7 @@ describeMathCPUAndGPU('BatchNormalization Layers: Tensor', () => {
         movingVarianceValue, [37.018574, 22.344547, 12.339525, 7.003515]);
   });
 
-  fit('Fit: 2D, BatchNorm Layer between two Dense Layers', async () => {
+  it('Fit: 2D, BatchNorm Layer between two Dense Layers', async () => {
     // Use the following Python code to get the reference values for
     // assertion:
     // ```python
