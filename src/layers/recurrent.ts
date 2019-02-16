@@ -2201,6 +2201,23 @@ export class LSTMCell extends RNNCell {
     });
   }
 
+  getWeights(): Tensor[] {
+    const weights: Tensor[] = [
+      tfc.concat([
+          this.kernel0.read(), this.kernel1.read(),
+          this.kernel2.read(), this.kernel3.read()], 1),
+      tfc.concat([
+          this.recurrentKernel0.read(), this.recurrentKernel1.read(),
+          this.recurrentKernel2.read(), this.recurrentKernel3.read()], 1)
+    ];
+    if (this.useBias) {
+      weights.push(tfc.concat([
+          this.bias0.read(), this.bias1.read(),
+          this.bias2.read(), this.bias3.read()], 0));
+    }
+    return weights;
+  }
+
   getConfig(): serialization.ConfigDict {
     const config: serialization.ConfigDict = {
       units: this.units,
@@ -2383,6 +2400,11 @@ export class LSTM extends RNN {
 
   get implementation(): number {
     return (this.cell as LSTMCell).implementation;
+  }
+
+  getWeights(trainableOnly = false): Tensor[] {
+    // TODO(cais): Take care of trainableOnly.
+    return this.cell.getWeights();
   }
 
   getConfig(): serialization.ConfigDict {
