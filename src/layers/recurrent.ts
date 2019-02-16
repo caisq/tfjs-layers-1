@@ -1981,9 +1981,21 @@ export class LSTMCell extends RNNCell {
 
   readonly DEFAULT_BIAS_INITIALIZER = 'zeros';
 
-  kernel: LayerVariable;
-  recurrentKernel: LayerVariable;
-  bias: LayerVariable;
+  // kernel: LayerVariable;
+  // recurrentKernel: LayerVariable;
+  // bias: LayerVariable;
+  kernel0: LayerVariable;
+  kernel1: LayerVariable;
+  kernel2: LayerVariable;
+  kernel3: LayerVariable;
+  recurrentKernel0: LayerVariable;
+  recurrentKernel1: LayerVariable;
+  recurrentKernel2: LayerVariable;
+  recurrentKernel3: LayerVariable;
+  bias0: LayerVariable;
+  bias1: LayerVariable;
+  bias2: LayerVariable;
+  bias3: LayerVariable;
 
   constructor(args: LSTMCellLayerArgs) {
     super(args);
@@ -2032,11 +2044,40 @@ export class LSTMCell extends RNNCell {
   public build(inputShape: Shape|Shape[]): void {
     inputShape = getExactlyOneShape(inputShape);
     const inputDim = inputShape[inputShape.length - 1];
-    this.kernel = this.addWeight(
-        'kernel', [inputDim, this.units * 4], null, this.kernelInitializer,
+
+    // this.kernel = this.addWeight(
+    //     'kernel', [inputDim, this.units * 4], null, this.kernelInitializer,
+    //     this.kernelRegularizer, true, this.kernelConstraint);
+    // this.recurrentKernel = this.addWeight(
+    //     'recurrent_kernel', [this.units, this.units * 4], null,
+    //     this.recurrentInitializer, this.recurrentRegularizer, true,
+    //     this.recurrentConstraint);
+    this.kernel0 = this.addWeight(
+        'kernel_0', [inputDim, this.units], null, this.kernelInitializer,
         this.kernelRegularizer, true, this.kernelConstraint);
-    this.recurrentKernel = this.addWeight(
-        'recurrent_kernel', [this.units, this.units * 4], null,
+    this.kernel1 = this.addWeight(
+        'kernel_1', [inputDim, this.units], null, this.kernelInitializer,
+        this.kernelRegularizer, true, this.kernelConstraint);
+    this.kernel2 = this.addWeight(
+        'kernel_2', [inputDim, this.units], null, this.kernelInitializer,
+        this.kernelRegularizer, true, this.kernelConstraint);
+    this.kernel3 = this.addWeight(
+        'kernel_3', [inputDim, this.units], null, this.kernelInitializer,
+        this.kernelRegularizer, true, this.kernelConstraint);
+    this.recurrentKernel0 = this.addWeight(
+        'recurrent_kernel_0', [this.units, this.units], null,
+        this.recurrentInitializer, this.recurrentRegularizer, true,
+        this.recurrentConstraint);
+    this.recurrentKernel1 = this.addWeight(
+        'recurrent_kernel_1', [this.units, this.units], null,
+        this.recurrentInitializer, this.recurrentRegularizer, true,
+        this.recurrentConstraint);
+    this.recurrentKernel2 = this.addWeight(
+        'recurrent_kernel_2', [this.units, this.units], null,
+        this.recurrentInitializer, this.recurrentRegularizer, true,
+        this.recurrentConstraint);
+    this.recurrentKernel3 = this.addWeight(
+        'recurrent_kernel_3', [this.units, this.units], null,
         this.recurrentInitializer, this.recurrentRegularizer, true,
         this.recurrentConstraint);
     let biasInitializer: Initializer;
@@ -2060,11 +2101,27 @@ export class LSTMCell extends RNNCell {
       } else {
         biasInitializer = this.biasInitializer;
       }
-      this.bias = this.addWeight(
-          'bias', [this.units * 4], null, biasInitializer, this.biasRegularizer,
+      // this.bias = this.addWeight(
+      //     'bias', [this.units * 4], null, biasInitializer, this.biasRegularizer,
+      //     true, this.biasConstraint);
+      this.bias0 = this.addWeight(
+          'bias_0', [this.units], null, biasInitializer, this.biasRegularizer,
+          true, this.biasConstraint);
+      this.bias1 = this.addWeight(
+          'bias_1', [this.units], null, biasInitializer, this.biasRegularizer,
+          true, this.biasConstraint);
+      this.bias2 = this.addWeight(
+          'bias_2', [this.units], null, biasInitializer, this.biasRegularizer,
+          true, this.biasConstraint);
+      this.bias3 = this.addWeight(
+          'bias_3', [this.units], null, biasInitializer, this.biasRegularizer,
           true, this.biasConstraint);
     } else {
-      this.bias = null;
+      // this.bias = null;
+      this.bias0 = null;
+      this.bias1 = null;
+      this.bias2 = null;
+      this.bias3 = null;
     }
     // Porting Notes: Unlike the PyKeras implementation, we perform slicing
     //   of the weights and bias in the call() method, at execution time.
@@ -2109,16 +2166,29 @@ export class LSTMCell extends RNNCell {
       if (0 < this.dropout && this.dropout < 1) {
         inputs = tfc.mul(inputs, dpMask[0]);
       }
-      let z = K.dot(inputs, this.kernel.read());
+      // let z = K.dot(inputs, this.kernel.read());
       if (0 < this.recurrentDropout && this.recurrentDropout < 1) {
         hTMinus1 = tfc.mul(hTMinus1, recDpMask[0]);
       }
-      z = tfc.add(z, K.dot(hTMinus1, this.recurrentKernel.read()));
+      // z = tfc.add(z, K.dot(hTMinus1, this.recurrentKernel.read()));
+      // if (this.useBias) {
+      //   z = K.biasAdd(z, this.bias.read());
+      // }
+      // const [z0, z1, z2, z3] = tfc.split(z, 4, z.rank - 1);
+      let z0 = K.dot(inputs, this.kernel0.read());
+      let z1 = K.dot(inputs, this.kernel1.read());
+      let z2 = K.dot(inputs, this.kernel2.read());
+      let z3 = K.dot(inputs, this.kernel3.read());
+      z0 = tfc.add(z0, K.dot(hTMinus1, this.recurrentKernel0.read()));
+      z1 = tfc.add(z1, K.dot(hTMinus1, this.recurrentKernel1.read()));
+      z2 = tfc.add(z2, K.dot(hTMinus1, this.recurrentKernel2.read()));
+      z3 = tfc.add(z3, K.dot(hTMinus1, this.recurrentKernel3.read()));
       if (this.useBias) {
-        z = K.biasAdd(z, this.bias.read());
+        z0 = K.biasAdd(z0, this.bias0.read());
+        z1 = K.biasAdd(z1, this.bias1.read());
+        z2 = K.biasAdd(z2, this.bias2.read());
+        z3 = K.biasAdd(z3, this.bias3.read());
       }
-
-      const [z0, z1, z2, z3] = tfc.split(z, 4, z.rank - 1);
 
       i = this.recurrentActivation.apply(z0);
       f = this.recurrentActivation.apply(z1);
