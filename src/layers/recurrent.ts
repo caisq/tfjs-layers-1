@@ -2218,6 +2218,28 @@ export class LSTMCell extends RNNCell {
     return weights;
   }
 
+  setWeights(weights: Tensor[]): void {
+    const weightValueTuples: Array<[LayerVariable, Tensor]> = [];
+    const kernels = weights[0].split(4, 1);
+    weightValueTuples.push([this.kernel0, kernels[0]]);
+    weightValueTuples.push([this.kernel1, kernels[1]]);
+    weightValueTuples.push([this.kernel2, kernels[2]]);
+    weightValueTuples.push([this.kernel3, kernels[3]]);
+    const recurrentKernels = weights[1].split(4, 1);
+    weightValueTuples.push([this.recurrentKernel0, recurrentKernels[0]]);
+    weightValueTuples.push([this.recurrentKernel1, recurrentKernels[1]]);
+    weightValueTuples.push([this.recurrentKernel2, recurrentKernels[2]]);
+    weightValueTuples.push([this.recurrentKernel3, recurrentKernels[3]]);
+    if (this.useBias) {
+      const biases = weights[2].split(4, 0);
+      weightValueTuples.push([this.bias0, biases[0]]);
+      weightValueTuples.push([this.bias1, biases[1]]);
+      weightValueTuples.push([this.bias2, biases[2]]);
+      weightValueTuples.push([this.bias3, biases[3]]);
+    }
+    batchSetValue(weightValueTuples);
+  }
+
   getConfig(): serialization.ConfigDict {
     const config: serialization.ConfigDict = {
       units: this.units,
@@ -2405,6 +2427,10 @@ export class LSTM extends RNN {
   getWeights(trainableOnly = false): Tensor[] {
     // TODO(cais): Take care of trainableOnly.
     return this.cell.getWeights();
+  }
+
+  setWeights(values: Tensor[]): void {
+    this.cell.setWeights(values);
   }
 
   getConfig(): serialization.ConfigDict {
