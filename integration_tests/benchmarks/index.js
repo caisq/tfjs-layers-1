@@ -53,16 +53,19 @@ async function runBenchmark(artifactsDir, modelName, config) {
 
   // Perform fit() burn-in.
   if (benchmarkData.train_epochs > 0) {
+    console.log('10:', tfc.memory().numTensors);  // DEBUG
     await model.fit(xs, ys, {
       batchSize: benchmarkData.batch_size,
       epochs: FIT_BURNIN_EPOCHS,
       yieldEvery: 'never'
     });
-    model.trainableWeights[0].read().dataSync();
+    console.log('20:', tfc.memory().numTensors);  // DEBUG
+    // model.trainableWeights[0].read().dataSync();
   }
 
   let trainTimeMs;
   if (benchmarkData.train_epochs > 0) {
+    console.log('30:', tfc.memory().numTensors);  // DEBUG
     const trainBeginMs = performance.now();
     await model.fit(xs, ys, {
       batchSize: benchmarkData.batch_size,
@@ -71,41 +74,49 @@ async function runBenchmark(artifactsDir, modelName, config) {
     });
     // After the fit() call, call dataSync() to let the scheduled GPU
     // operations to complete before proceeding.
-    model.trainableWeights[0].read().dataSync();
+    // model.trainableWeights[0].read().dataSync();
     const trainEndMs = performance.now();
     trainTimeMs = (trainEndMs - trainBeginMs) / benchmarkData.train_epochs;
+    console.log('40:', tfc.memory().numTensors);  // DEBUG
   }
 
+  // tfc.dispose([xs, ys]);
+  // xs.dispose();
+  // console.log(`xs.isDisposed:`, xs.isDisposed, xs.shape);
+
   // Perform predict() burn-in.
-  return tfc.tidy(() => {
-    let output;
-    for (let i = 0; i < PREDICT_BURNINS; ++i) {
-      output = model.predict(xs);
-    }
-    // Time predict() a number of times and take the average.
-    const predictBeginMs = performance.now();
-    for (let i = 0; i < PREDICT_RUNS; ++i) {
-      output = model.predict(xs);
-    }
-    // After all the model.predict() calls, invoke dataSync() once to let the
+  let output;
+  for (let i = 0; i < PREDICT_BURNINS; ++i) {
+    output = model.predict(xs);
+    tfc.dispose(output);
+  }
+  // Time predict() a number of times and take the average.
+  const predictBeginMs = performance.now();
+  for (let i = 0; i < PREDICT_RUNS; ++i) {
+    output = model.predict(xs);
+    // After all the model.predict() calls, invoke data() once to let the
     // scheduled GPU operations complete before proceeding.
     if (Array.isArray(output)) {
-      output.map(out => out.dataSync());
+      for (const tensor of output) {
+        await tensor.data();
+      }
     } else {
-      output.dataSync();
+      await output.data();
     }
-    const predictEndMs = performance.now();
-    const predictTimeMs = (predictEndMs - predictBeginMs) / PREDICT_RUNS;
+    tfc.dispose(output);
+  }
+  const predictEndMs = performance.now();
+  const predictTimeMs = (predictEndMs - predictBeginMs) / PREDICT_RUNS;
 
-    tfc.dispose(xs);
-    tfc.dispose(ys);
+  tfc.dispose(xs);
+  tfc.dispose(ys);
 
-    return {
-      originalData: benchmarkData,
-      predictTimeMs: predictTimeMs,
-      trainTimeMs: trainTimeMs,
-    };
-  });
+  console.log(tfc.memory().numTensors);  // DEBUG
+  return {
+    originalData: benchmarkData,
+    predictTimeMs: predictTimeMs,
+    trainTimeMs: trainTimeMs,
+  };
 }
 
 /**

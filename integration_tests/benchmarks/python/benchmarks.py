@@ -24,7 +24,6 @@ from tensorflow import keras
 import numpy as np
 import tensorflow as tf
 # Comparing TF Eager vs TF.js for a fair comparison.
-tf.enable_eager_execution()
 from tensorflow.python.client import device_lib
 import tensorflowjs as tfjs
 
