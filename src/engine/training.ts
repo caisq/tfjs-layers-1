@@ -506,6 +506,9 @@ export class LayersModel extends Container implements tfc.InferenceModel {
   //   implicit "knowledge" of the outputs it depends on.
   metricsTensors: Array<[LossOrMetricFn, number]>;
 
+  // User defind metadata (if any).
+  private userDefinedMetadata: {};
+
   constructor(args: ContainerArgs) {
     super(args);
     this.isTraining = false;
@@ -1858,5 +1861,61 @@ export class LayersModel extends Container implements tfc.InferenceModel {
     modelArtifacts.weightSpecs = weightDataAndSpecs.specs;
     return handlerOrURL.save(modelArtifacts);
   }
+
+  /**
+   * Set user-defined metadata.
+   *
+   * The set metadata will be serialized together with the topology
+   * and weights of the model during `save()` calls.
+   *
+   * @param setUserDefinedMetadata
+   */
+  setUserDefinedMetadata(userDefinedMetadata: {}): void {
+    checkUserDefinedMetadata(userDefinedMetadata);
+    this.userDefinedMetadata = userDefinedMetadata;
+  }
+
+  /**
+   * Get user-defined metadata.
+   *
+   * The metadata is supplied via one of the two routes:
+   *   1. By calling `setuserDefinedMetadata()`.
+   *   2. Loaded during model loading (if the model is constructed)
+   *      by `tf.loadLayersModel()`.
+   *
+   * If no user-defined metadata is available from either of the
+   * two routes, this function will return `undefined`.
+   */
+  getUserDefinedMetadata(): {} {
+    return this.userDefinedMetadata;
+  }
 }
 serialization.registerClass(LayersModel);
+
+function checkUserDefinedMetadata(userDefinedMetadata: {}) {
+  if (typeof userDefinedMetadata !== 'object') {
+    throw new Error(
+        'User-defined metadata is expected to be a JSON object, ' +
+        `but received a ${typeof userDefinedMetadata}`);
+  }
+}
+
+const MAX_USER_DEFINED_METADATA_SERIALIZED_LENGTH = 1 * 1024 * 1024;
+
+export function serializeUserDefinedMetadata(
+    userDefinedMetadata: {}, modelName: string): string {
+  try {
+    const out = JSON.stringify(userDefinedMetadata);
+    if (out.length > MAX_USER_DEFINED_METADATA_SERIALIZED_LENGTH) {
+      console.warn(
+          `User-defined metadata of model "${modelName}" is too large in ` +
+          `size (length=${out.length} when serialized). It is not ` +
+          `recommended to store such large objects in user-defined metadata.` +
+          `Please make sure its serialized length is <= ` +
+          `${MAX_USER_DEFINED_METADATA_SERIALIZED_LENGTH}`);
+    }
+    return out;
+  } catch (err) {
+    throw new Error('Failed to serialized user-defined metadata.');
+  }
+}
