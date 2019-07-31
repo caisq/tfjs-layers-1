@@ -287,19 +287,3 @@ describe('debouce', () => {
     expect(numCalls).toBe(2);
   });
 });
-
-fdescribe('isJsonSerializable', () => {
-  // it('Serializable objects', () => {
-  //   expect(utils.isJsonSerializable({'a': 'b'})).toEqual(true);
-  //   expect(utils.isJsonSerializable({'a': 123})).toEqual(true);
-  //   expect(utils.isJsonSerializable({'a': [1, 'foo', 'bar']})).toEqual(true);
-  //   expect(utils.isJsonSerializable(
-  //       {'a': [{'foo': 'bar'}], 'b': {}})).toEqual(true);
-  // });
-
-  it('Non-serializable objects', () => {
-    const typedArray = new Float32Array([1, 2, 3]);
-    expect(utils.isJsonSerializable(typedArray)).toEqual(false);
-    // expect(utils.isJsonSerializable({'data': typedArray})).toEqual(false);
-  });
-});

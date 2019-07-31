@@ -498,35 +498,3 @@ export function debounce<T>(
   };
   return f2;
 }
-
-/**
- * Checks whether the input is JSON-serializable.
- *
- * @param x
- * @returns `true` if and only if `x` itself is a string, number, or boolean,
- *   or if it is a nested object/array of such primitives.
- */
-// tslint:disable-next-line:no-any
-export function isJsonSerializable(x: any): boolean {
-  if (Array.isArray(x)) {
-    console.log('100');  // DEBUG
-    for (const item of x) {
-      if (!isJsonSerializable(item)) {
-        return false;
-      }
-    }
-    return true;
-  } else if (typeof x === 'object') {
-    console.log('200');  // DEBUG
-    for (const key of Object.keys(x)) {
-      if (!isJsonSerializable(x[key])) {
-        return false;
-      }
-    }
-    return true;
-  } else {
-    console.log('300');  // DEBUG
-    return (typeof x === 'string' || typeof x === 'number' ||
-        typeof x === 'boolean');
-  }
-}
