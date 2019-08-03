@@ -2044,7 +2044,7 @@ describeMathCPUAndGPU('Sequential', () => {
         model.apply(getInputs()) as Tensor, getExpectedOutputs());
   });
 
-  it('predict() threads data through the model.', () => {
+  fit('predict() threads data through the model.', () => {
     const model = tfl.sequential({layers});
     expectTensorsClose(
         model.predict(getInputs()) as Tensor, getExpectedOutputs());

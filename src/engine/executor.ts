@@ -327,8 +327,11 @@ export function execute(
       kwargs = kwargs || {};
       kwargs['mask'] = inputMasks[0];
     }
+    const t0 = util.now();  // DEBUG
     const outputTensors =
         toList(srcLayer.apply(inputValues, kwargs)) as Tensor[];
+    const tElapsed = util.now() - t0;
+    console.log(`Layer ${srcLayer.name}: ${tElapsed.toFixed(2)} ms`);  // DEBUG
     let outputMask: Tensor|Tensor[] = null;
     if (srcLayer.supportsMasking) {
       outputMask = srcLayer.computeMask(inputValues, inputMasks);
